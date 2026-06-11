@@ -73,7 +73,7 @@ export function SwipeCard({ onSwipe }: Props) {
       <motion.button
         style={{ opacity: noOpacity }}
         onClick={() => handleTapDecision(false)}
-        className="absolute left-0 z-10 font-sketch text-2xl text-[#2D2D2D] select-none px-4 py-2 hover:scale-110 transition-transform"
+        className="absolute left-0 z-10 font-sketch text-2xl text-rehobbie-ink select-none px-4 py-2 hover:scale-110 transition-transform"
         aria-label="No, I don't want to resume"
       >
         no
@@ -89,9 +89,9 @@ export function SwipeCard({ onSwipe }: Props) {
         onDragEnd={handleDragEnd}
         className="
           relative z-20 cursor-grab active:cursor-grabbing select-none
-          w-64 h-64 rounded-3xl bg-[#F0EDE7]
-          border-2 border-[#E0DBD0]
-          shadow-[4px_4px_0px_#C8C4BC]
+          w-64 h-64 rounded-3xl bg-rehobbie-paper
+          border-2 border-rehobbie-line
+          shadow-[4px_4px_0px_theme(colors.rehobbie.border-light)]
           flex flex-col items-center justify-center gap-3
           text-center px-6
         "
@@ -105,24 +105,24 @@ export function SwipeCard({ onSwipe }: Props) {
         */}
 
         {/* Card question text */}
-        <p className="font-sketch text-2xl font-semibold text-[#2D2D2D] leading-snug">
+        <p className="font-sketch text-2xl font-semibold text-rehobbie-ink leading-snug">
           wanna pick up where you left off?
         </p>
 
         {/* Swipe hint icon */}
-        <div className="mt-2 flex items-center gap-1 text-[#BFBBB2] font-body text-xs">
+        <div className="mt-2 flex items-center gap-1 text-rehobbie-border-hover font-body text-xs">
           <span>← swipe →</span>
         </div>
 
         {/* ── Motion ripple lines (matches Figma's wavy brackets) ────────────── */}
         <div className="absolute -left-6 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-40" aria-hidden="true">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="w-3 h-3 border-l-2 border-[#2D2D2D] rounded-l-full" style={{ marginLeft: i * 2 }} />
+            <div key={i} className="w-3 h-3 border-l-2 border-rehobbie-ink rounded-l-full" style={{ marginLeft: i * 2 }} />
           ))}
         </div>
         <div className="absolute -right-6 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-40" aria-hidden="true">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="w-3 h-3 border-r-2 border-[#2D2D2D] rounded-r-full" style={{ marginRight: i * 2 }} />
+            <div key={i} className="w-3 h-3 border-r-2 border-rehobbie-ink rounded-r-full" style={{ marginRight: i * 2 }} />
           ))}
         </div>
       </motion.div>
@@ -131,14 +131,14 @@ export function SwipeCard({ onSwipe }: Props) {
       <motion.button
         style={{ opacity: yesOpacity }}
         onClick={() => handleTapDecision(true)}
-        className="absolute right-0 z-10 font-sketch text-2xl text-[#2D2D2D] select-none px-4 py-2 hover:scale-110 transition-transform"
+        className="absolute right-0 z-10 font-sketch text-2xl text-rehobbie-ink select-none px-4 py-2 hover:scale-110 transition-transform"
         aria-label="Yes, I want to resume"
       >
         yes!
       </motion.button>
 
       {/* ── "swipe" label underneath ─────────────────────────────────────────── */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-2 text-[#BFBBB2] font-body text-xs">
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-2 text-rehobbie-border-hover font-body text-xs">
         <span>——</span>
         <span>swipe</span>
         <span>——</span>

@@ -25,8 +25,8 @@ export function ReasonChip({ reason, selected, onToggle }: Props) {
         w-full py-4 px-6 rounded-full text-left
         border-2 transition-all duration-150 font-sketch text-xl
         ${selected
-          ? "bg-[#2D2D2D] text-white border-[#2D2D2D]"
-          : "bg-white text-[#2D2D2D] border-[#E5E1D8] hover:border-[#BFBBB2]"
+          ? "bg-rehobbie-ink text-white border-rehobbie-ink"
+          : "bg-white text-rehobbie-ink border-rehobbie-border hover:border-rehobbie-border-hover"
         }
       `}
       aria-pressed={selected}

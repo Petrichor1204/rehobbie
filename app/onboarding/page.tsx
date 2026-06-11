@@ -1,7 +1,7 @@
 "use client";
 // app/onboarding/page.tsx — STEP 1: "What hobbies did you used to like?"
 // ─────────────────────────────────────────────────────────────────────────────
-// Matches Figma "/unboardingpage" frame:
+// Matches Figma "/onboarding" frame:
 //   - Lined-paper aesthetic background
 //   - Question at top in sketch font
 //   - 2-column grid of hobby cards (grows automatically when more hobbies added)
@@ -38,38 +38,23 @@ export default function OnboardingPage() {
   const hasSelection = selectedHobbies.length > 0;
 
   return (
-    <main className="relative min-h-screen bg-[#FAF8F4] overflow-hidden">
+    <main className="relative min-h-screen bg-rehobbie-cream overflow-hidden">
 
-      {/* ── Lined-paper background lines ─────────────────────────────────────── */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden="true"
-        style={{
-          backgroundImage: "repeating-linear-gradient(transparent, transparent 39px, #E0DBD0 39px, #E0DBD0 40px)",
-          backgroundPosition: "0 56px",
-        }}
-      />
+      <div className="absolute inset-0 pointer-events-none lined-paper" aria-hidden="true" />
 
       <div className="relative z-10 max-w-lg mx-auto px-6 py-10 flex flex-col min-h-screen">
 
-        {/* ── Back button ──────────────────────────────────────────────────────── */}
         <button
           onClick={() => router.back()}
-          className="self-start mb-6 text-[#888] font-body text-sm flex items-center gap-1 hover:text-[#555] transition-colors"
+          className="self-start mb-6 text-rehobbie-muted font-body text-sm flex items-center gap-1 hover:text-rehobbie-subtext-dark transition-colors"
         >
           ← Back
         </button>
 
-        {/* ── Heading ─────────────────────────────────────────────────────────── */}
-        <h2 className="font-sketch text-3xl font-bold text-center text-[#2D2D2D] mb-8 leading-snug">
+        <h2 className="font-sketch text-3xl font-bold text-center text-rehobbie-ink mb-8 leading-snug">
           What hobbies did you used to like?
         </h2>
 
-        {/* ── Hobby grid ──────────────────────────────────────────────────────── */}
-        {/*
-          Grid is intentionally flexible: auto-fill with minmax(140px, 1fr)
-          so adding more hobbies to lib/hobbies.ts just works.
-        */}
         <div
           className="grid gap-4 w-full"
           style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}
@@ -90,14 +75,12 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        {/* ── Selection hint ───────────────────────────────────────────────────── */}
-        <p className="mt-6 text-center text-sm text-[#AAA] font-body">
+        <p className="mt-6 text-center text-sm text-rehobbie-faint font-body">
           {hasSelection
             ? `${selectedHobbies.length} selected — pick as many as you like`
             : "tap one or more to continue"}
         </p>
 
-        {/* ── Next button ──────────────────────────────────────────────────────── */}
         <div className="mt-auto pt-8 pb-4">
           <AnimatePresence>
             {hasSelection && (
@@ -111,9 +94,9 @@ export default function OnboardingPage() {
                 whileTap={{ scale: 0.97 }}
                 className="
                   w-full py-4 rounded-full
-                  bg-[#2D2D2D] text-white
+                  bg-rehobbie-ink text-white
                   font-sketch text-2xl font-semibold
-                  shadow-md hover:bg-[#444] transition-colors
+                  shadow-md hover:bg-rehobbie-subtext-dark transition-colors
                 "
               >
                 Next →

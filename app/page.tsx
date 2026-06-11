@@ -52,10 +52,10 @@ export default function HomePage() {
   const router = useRouter();
 
   return (
-    <main className="relative w-full min-h-screen overflow-hidden bg-[#FAF8F4] select-none">
+    <main className="relative w-full min-h-screen overflow-hidden bg-rehobbie-cream select-none">
 
       {/* ── Wordmark ─────────────────────────────────────────────────────────── */}
-      <h1 className="font-sketch absolute top-6 right-8 text-3xl font-bold tracking-widest text-[#2D2D2D] z-10">
+      <h1 className="font-sketch absolute top-6 right-8 text-3xl font-bold tracking-widest text-rehobbie-ink z-10">
         REHOBBIE
       </h1>
 
@@ -66,6 +66,7 @@ export default function HomePage() {
           className="absolute"
           style={{ top: icon.top, left: icon.left }}
           variants={floatVariants(icon.delay)}
+          initial="initial"
           animate="animate"
         >
           {/*
@@ -108,7 +109,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Subtle tagline ────────────────────────────────────────────────────── */}
-      <p className="absolute bottom-10 left-1/2 -translate-x-1/2 text-sm text-[#888] font-body tracking-wide whitespace-nowrap">
+      <p className="absolute bottom-10 left-1/2 -translate-x-1/2 text-sm text-rehobbie-muted font-body tracking-wide whitespace-nowrap">
         pick up where you left off
       </p>
     </main>

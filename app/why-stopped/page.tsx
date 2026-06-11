@@ -26,41 +26,30 @@ export default function WhyStoppedPage() {
   const hasSelection = stopReasons.length > 0;
 
   return (
-    <main className="relative min-h-screen bg-[#FAF8F4] overflow-hidden">
+    <main className="relative min-h-screen bg-rehobbie-cream overflow-hidden">
 
-      {/* ── Lined-paper background ───────────────────────────────────────────── */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden="true"
-        style={{
-          backgroundImage: "repeating-linear-gradient(transparent, transparent 39px, #E0DBD0 39px, #E0DBD0 40px)",
-          backgroundPosition: "0 56px",
-        }}
-      />
+      <div className="absolute inset-0 pointer-events-none lined-paper" aria-hidden="true" />
 
       <div className="relative z-10 max-w-lg mx-auto px-6 py-10 flex flex-col min-h-screen">
 
-        {/* ── Back button ─────────────────────────────────────────────────────── */}
         <button
           onClick={() => router.back()}
-          className="self-start mb-6 text-[#888] font-body text-sm flex items-center gap-1 hover:text-[#555] transition-colors"
+          className="self-start mb-6 text-rehobbie-muted font-body text-sm flex items-center gap-1 hover:text-rehobbie-subtext-dark transition-colors"
         >
           ← Back
         </button>
 
-        {/* ── Heading ─────────────────────────────────────────────────────────── */}
         <div className="mb-8 text-center">
-          <h2 className="font-sketch text-3xl font-bold text-[#2D2D2D] leading-snug">
+          <h2 className="font-sketch text-3xl font-bold text-rehobbie-ink leading-snug">
             why did you stop?
           </h2>
           {favoriteHobby && (
-            <p className="font-body text-sm text-[#AAA] mt-1">
-              you picked <span className="text-[#2D2D2D] font-medium">{favoriteHobby.label}</span>
+            <p className="font-body text-sm text-rehobbie-faint mt-1">
+              you picked <span className="text-rehobbie-ink font-medium">{favoriteHobby.label}</span>
             </p>
           )}
         </div>
 
-        {/* ── Reason chips ─────────────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3 w-full">
           {STOP_REASONS.map((reason, i) => (
             <motion.div
@@ -78,7 +67,6 @@ export default function WhyStoppedPage() {
           ))}
         </div>
 
-        {/* ── Next button ──────────────────────────────────────────────────────── */}
         <div className="mt-auto pt-8 pb-4">
           <AnimatePresence>
             {hasSelection && (
@@ -92,9 +80,9 @@ export default function WhyStoppedPage() {
                 whileTap={{ scale: 0.97 }}
                 className="
                   w-full py-4 rounded-full
-                  bg-[#2D2D2D] text-white
+                  bg-rehobbie-ink text-white
                   font-sketch text-2xl font-semibold
-                  shadow-md hover:bg-[#444] transition-colors
+                  shadow-md hover:bg-rehobbie-subtext-dark transition-colors
                 "
               >
                 Next →

@@ -32,8 +32,8 @@ export function HobbyCard({ hobby, selected, onToggle }: Props) {
         border-2 transition-all duration-200 cursor-pointer
         bg-white shadow-sm
         ${selected
-          ? "border-[#A8D8B0] shadow-[0_0_0_3px_#A8D8B033]"
-          : "border-[#E5E1D8] hover:border-[#C8C4BC]"
+          ? "border-rehobbie-green shadow-[0_0_0_3px_rgb(168_216_176/0.2)]"
+          : "border-rehobbie-border hover:border-rehobbie-border-light"
         }
       `}
       aria-pressed={selected}
@@ -44,10 +44,10 @@ export function HobbyCard({ hobby, selected, onToggle }: Props) {
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#A8D8B0] flex items-center justify-center"
+          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-rehobbie-green flex items-center justify-center"
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="#2D2D2D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-rehobbie-ink">
+            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </motion.div>
       )}
@@ -71,7 +71,7 @@ export function HobbyCard({ hobby, selected, onToggle }: Props) {
       </div>
 
       {/* ── Label ──────────────────────────────────────────────────────────── */}
-      <span className="font-sketch text-lg font-semibold text-[#2D2D2D] leading-tight">
+      <span className="font-sketch text-lg font-semibold text-rehobbie-ink leading-tight">
         {hobby.label}
       </span>
     </motion.button>

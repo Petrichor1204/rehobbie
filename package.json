@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@dnd-kit/core": "latest",
-    "framer-motion": "10.12.16",
     "lucide-react": "0.278.0",
     "motion": "^12.40.0",
     "next": "^16.2.9",

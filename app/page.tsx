@@ -1,51 +1,37 @@
 "use client";
-// app/page.tsx — HOME PAGE
-// ─────────────────────────────────────────────────────────────────────────────
-// Matches Figma "Home" frame:
-//   - "REHOBBIE" wordmark top-right
-//   - Hobby illustrations floating around the screen with gentle motion
-//   - "Get started" button in the centre-bottom area
-//
-// MOTION: Each icon floats independently using Motion (framer-motion fork).
-// Install: npm install motion
-// ─────────────────────────────────────────────────────────────────────────────
 
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import Image from "next/image";
+import { SketchBorder } from "@/components/SketchBorder";
 
-// ─── Floating icon positions ──────────────────────────────────────────────────
-// Each entry: { src, alt, top, left } — tweak these % values to match your
-// Figma layout exactly. These roughly match the scattered arrangement shown.
-// ─────────────────────────────────────────────────────────────────────────────
+// Spread across the full desktop viewport — larger, looser composition.
+// Each entry positions by % so it scales with the window.
 const FLOATING_ICONS = [
-  { id: "gardening", src: "/images/gardening.png",       alt: "Gardening",    top: "12%", left: "8%",  size: 110, delay: 0    },
-  { id: "cooking",   src: "/images/cooking.png",         alt: "Cooking",      top: "18%", left: "28%", size: 90,  delay: 0.4  },
-  { id: "novel",     src: "/images/reading.png",         alt: "Reading",      top: "8%",  left: "52%", size: 100, delay: 0.8  },
-  { id: "guitar",    src: "/images/music.png",          alt: "Music",        top: "28%", left: "68%", size: 120, delay: 0.2  },
-  { id: "camera",    src: "/images/photography.png",     alt: "Photography",  top: "52%", left: "14%", size: 95,  delay: 0.6  },
-  { id: "palette",   src: "/images/painting.png",        alt: "Painting",     top: "55%", left: "58%", size: 100, delay: 1.0  },
-  { id: "singer",    src: "/images/singing.png",         alt: "Singing",      top: "68%", left: "34%", size: 110, delay: 0.3  },
-  { id: "karate",    src: "/images/karate.png",          alt: "Karate",       top: "62%", left: "76%", size: 100, delay: 0.7  },
-  // ← Add more hobby icons here; position them with top/left %
+  { id: "gardening", src: "/images/gardening.png",    alt: "Gardening",   top: "14%", left: "9%",  size: 190, delay: 0   },
+  { id: "cooking",   src: "/images/cooking.png",      alt: "Cooking",     top: "20%", left: "31%", size: 150, delay: 0.4 },
+  { id: "novel",     src: "/images/reading.png",      alt: "Reading",     top: "12%", left: "55%", size: 170, delay: 0.8 },
+  { id: "guitar",    src: "/images/music.png",        alt: "Music",       top: "30%", left: "78%", size: 200, delay: 0.2 },
+  { id: "camera",    src: "/images/photography.png",  alt: "Photography", top: "46%", left: "16%", size: 165, delay: 0.6 },
+  { id: "palette",   src: "/images/painting.png",     alt: "Painting",    top: "52%", left: "47%", size: 165, delay: 1.0 },
+  { id: "singer",    src: "/images/singing.png",      alt: "Singing",     top: "58%", left: "27%", size: 200, delay: 0.3 },
+  { id: "karate",    src: "/images/karate.png",       alt: "Karate",      top: "55%", left: "70%", size: 180, delay: 0.7 },
 ];
 
-// Float animation — gentle up-and-down per icon
 function floatVariants(delay: number): Record<string, any> {
   return {
-    initial: { y: '0%', rotate: 0 },
+    initial: { y: "0%", rotate: 0 },
     animate: {
-      y: ['0%', '-6%', '0%'],
+      y: ["0%", "-5%", "0%"],
       rotate: [-1.5, 1.5, -1.5],
       transition: {
         duration: 3.5 + delay * 0.4,
         repeat: Infinity,
-        // use a bezier easing array instead of a string to satisfy types
-        ease: [0.42, 0, 0.58, 1],
+        ease: [0.42, 0, 0.58, 1] as const,
         delay,
       },
     },
-  }
+  };
 }
 
 export default function HomePage() {
@@ -54,64 +40,60 @@ export default function HomePage() {
   return (
     <main className="relative w-full min-h-screen overflow-hidden bg-rehobbie-cream select-none">
 
-      {/* ── Wordmark ─────────────────────────────────────────────────────────── */}
-      <h1 className="font-sketch absolute top-6 right-8 text-3xl font-bold tracking-widest text-rehobbie-ink z-10">
-        REHOBBIE
-      </h1>
+      <SketchBorder />
 
-      {/* ── Floating hobby illustrations ──────────────────────────────────────── */}
+      {/* Logo — top right */}
+      <Image
+        src="/images/rehobbie_logo.png"
+        alt="Rehobbie"
+        width={468}
+        height={212}
+        priority
+        className="absolute top-8 right-10 z-10 w-[clamp(140px,12vw,200px)] h-auto"
+      />
+
+      {/* Floating hobby illustrations spread across the viewport */}
       {FLOATING_ICONS.map((icon) => (
         <motion.div
           key={icon.id}
-          className="absolute"
+          className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2"
           style={{ top: icon.top, left: icon.left }}
           variants={floatVariants(icon.delay)}
           initial="initial"
           animate="animate"
         >
-          {/*
-            ─────────────────────────────────────────────────────────────────────
-            PLACEHOLDER: Replace <Image> with your own illustrated component
-            if you have a custom wrapper. Make sure the image file exists in
-            /public/images/ with the filename matching `icon.src`.
-            ─────────────────────────────────────────────────────────────────────
-          */}
           <Image
             src={icon.src}
             alt={icon.alt}
             width={icon.size}
             height={icon.size}
-            className="drop-shadow-sm"
+            className="drop-shadow-sm h-auto w-[clamp(96px,13vw,200px)]"
             draggable={false}
+            priority={icon.id === "camera"}
           />
         </motion.div>
       ))}
 
-      {/* ── Get started button ───────────────────────────────────────────────── */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10">
+      {/* Get started — illustration only, no button chrome */}
+      <div className="absolute bottom-[8%] left-1/2 -translate-x-1/2 z-10">
         <motion.button
-          onClick={() => router.push("/onboarding")}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.97 }}
-          className="p-0 bg-transparent rounded-full shadow-md hover:opacity-95 transition-opacity"
           type="button"
+          onClick={() => router.push("/onboarding")}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.97 }}
+          className="appearance-none border-0 bg-transparent p-0 cursor-pointer shadow-none outline-none focus-visible:ring-2 focus-visible:ring-rehobbie-green focus-visible:ring-offset-2 rounded-sm"
+          aria-label="Get started"
         >
           <Image
             src="/images/get_started_button.png"
-            alt="Get started"
-            width={240}
-            height={80}
-            className="object-contain"
+            alt=""
+            width={603}
+            height={217}
+            className="object-contain w-[clamp(200px,22vw,300px)] h-auto"
             draggable={false}
           />
-          <span className="sr-only">Get started</span>
         </motion.button>
       </div>
-
-      {/* ── Subtle tagline ────────────────────────────────────────────────────── */}
-      <p className="absolute bottom-10 left-1/2 -translate-x-1/2 text-sm text-rehobbie-muted font-body tracking-wide whitespace-nowrap">
-        pick up where you left off
-      </p>
     </main>
   );
 }

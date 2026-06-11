@@ -22,7 +22,7 @@ export function ReasonChip({ reason, selected, onToggle }: Props) {
       whileTap={{ scale: 0.97 }}
       transition={{ type: "spring", stiffness: 300, damping: 22 }}
       className={`
-        w-full py-4 px-6 rounded-full text-left
+        w-full py-4 px-6 rounded-full text-center
         border-2 transition-all duration-150 font-sketch text-xl
         ${selected
           ? "bg-rehobbie-ink text-white border-rehobbie-ink"

@@ -1,30 +1,32 @@
 # Rehobbie — Hobby Recovery App
 
 ## Purpose
-Help users rediscover abandoned creative hobbies (Writing, Drawing, Painting, Photography) through a seamless, no-login onboarding flow that leads them back to what they loved.
+Help users rediscover abandoned creative hobbies (Photography, Painting, Drawing, Writing) through a seamless, no-login onboarding flow that leads them back to what they loved — and then hands them a personalised plan to actually start again.
 
 ---
 
 ## Features
-- Mobile-first onboarding with large illustrated tappable cards
-- Multi-select hobby picker with a flexible grid (add new hobbies in one file)
-- Auto-skip logic — if only 1 hobby selected, the "pick favourite" step is bypassed
-- Swipable yes/no card for "pick up where you left off?" decision
+- Mobile-first, hand-drawn aesthetic: lined-paper backgrounds + an animated sketchy page border
+- Illustrated onboarding with large tappable cards and cursive heading artwork
+- Multi-select hobby picker on a centered, flexible grid (add new hobbies in one file)
+- Auto-skip logic — if only 1 hobby is selected, the "pick favourite" step is bypassed
+- Swipable yes/no card for the "pick up where you left off?" decision
 - Zustand store keeps all state across steps without prop drilling
-- Lined-paper aesthetic with Caveat (sketch) + Nunito fonts
-- Framer Motion / Motion floating animations on home, spring transitions on all steps
-- Placeholder pages for dashboard (yes path) and explore (no path) — Phase 2
+- **Dashboard (swipe yes):** skill-level selector → AI recovery plan → resource shelf → social proof
+- **Explore (swipe no):** other hobbies + brand-new suggestions that restart the flow pre-selected
+- Motion (`motion/react`) floating animations on home and spring transitions on every step
 
 ---
 
 ## Tech Stack
-- **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS, Motion (`motion/react`), lucide-react
+- **Framework:** Next.js 16 (App Router, Turbopack), TypeScript
+- **Styling:** Tailwind CSS v3 (`tailwind.config.ts` + `postcss.config.js`)
+- **Animation:** Motion (`motion/react`)
 - **State:** Zustand
-- **Fonts:** Caveat (sketch feel) + Nunito via next/font/google
-- **Analytics:** PostHog (placeholder in `lib/posthog.ts`)
-- **AI:** Microsoft Foundry IQ (placeholder in `lib/foundry.ts`)
-- **Backend:** Next.js API routes
-- **Database:** Supabase (placeholder in `lib/supabase.ts`)
+- **Fonts:** Caveat (sketch feel) + Nunito, via `next/font/google`
+- **AI:** Microsoft Foundry IQ — recovery plan generator in `lib/foundry.ts` (currently a local generator behind a Foundry-ready seam)
+
+> Note: `posthog-js` is installed but not yet wired. Supabase is referenced in the handoff notes but not installed/used yet.
 
 ---
 
@@ -32,38 +34,42 @@ Help users rediscover abandoned creative hobbies (Writing, Drawing, Painting, Ph
 
 ```
 app/
-  page.tsx                   ← Home — floating hobby icons, get started CTA
+  page.tsx                   ← Home — floating illustrations, logo, get-started CTA
   layout.tsx                 ← Root layout with font setup
-  globals.css
+  global.css                 ← Tailwind layers, lined-paper + sketch-border styles
   onboarding/page.tsx        ← Step 1: hobby picker (multi-select grid)
-  select-favorite/page.tsx   ← Step 2: pick favourite (skipped if 1 hobby selected)
+  select-favorite/page.tsx   ← Step 2: pick favourite (auto-skipped if 1 hobby)
   why-stopped/page.tsx       ← Step 3: stop reasons (multi-select chips)
   ready-check/page.tsx       ← Step 4: swipable yes/no card
-  dashboard/page.tsx         ← Phase 2 placeholder (swipe yes → here)
-  explore/page.tsx           ← Phase 2 placeholder (swipe no → here)
-  api/generate-plan/
-    route.ts                 ← AI plan endpoint (placeholder)
+  dashboard/page.tsx         ← Phase 2: swipe yes → skill, AI plan, resources
+  explore/page.tsx           ← Phase 2: swipe no → other / new hobbies
 
 components/
+  SketchBorder.tsx           ← Animated hand-drawn page border (SVG)
+  PageFrame.tsx              ← Scrollable Phase-2 page shell (border + lined paper)
   onboarding/
+    OnboardingShell.tsx      ← Centered shell for the 4 onboarding steps
     HobbyCard.tsx            ← Illustrated hobby tile with selected state
-    ReasonChip.tsx           ← Full-width pill button for stop reasons
+    ReasonChip.tsx           ← Pill button for stop reasons
     SwipeCard.tsx            ← Drag-physics yes/no swipe card
+  dashboard/
+    SkillSelector.tsx        ← Horizontal scrollable skill-level pills
+    RecoveryPlanCard.tsx     ← AI plan with loading + reveal states
+    ResourceShelf.tsx        ← Books / YouTube / community columns
+    OthersLikeYou.tsx        ← Social-proof strip
 
 lib/
-  hobbies.ts                 ← All hobby + stop reason data (single source of truth)
-  supabase.ts                ← Supabase client (TODO: wire up)
-  posthog.ts                 ← PostHog init (placeholder)
-  foundry.ts                 ← Microsoft Foundry IQ (placeholder)
-  prompts.ts                 ← AI prompt templates
+  hobbies.ts                 ← Hobbies, stop reasons, skill levels, "new" hobbies
+  resources.ts               ← Resource cards keyed by hobby id (+ generic fallback)
+  foundry.ts                 ← AI recovery plan generator (Foundry integration seam)
 
 store/
-  onboarding.ts              ← Zustand store (selectedHobbies, favourite, reasons, etc.)
+  onboarding.ts              ← Zustand store (selections, favourite, reasons, skill)
 
 types/
-  index.ts                   ← Hobby, StopReason, SkillLevel, OnboardingState
+  index.ts                   ← Hobby, StopReason, SkillLevel, Resource, RecoveryPlan, …
 
-NEXT_STEPS.md                ← Detailed handoff instructions for Copilot
+copilot-instruct.md          ← Original handoff notes (Supabase/PostHog/Foundry ideas)
 ```
 
 ---
@@ -72,34 +78,28 @@ NEXT_STEPS.md                ← Detailed handoff instructions for Copilot
 
 ```bash
 npm install
-npm install motion zustand
 npm run dev
 ```
 
 Open http://localhost:3000 — click "Get started" to enter the onboarding flow.
 
-### Required: tsconfig.json path alias
-Make sure `compilerOptions` in `tsconfig.json` includes:
-```json
-"baseUrl": ".",
-"paths": {
-  "@/*": ["./*"]
-}
-```
-Without this, `@/lib/...` imports will error.
+All runtime dependencies (Motion, Zustand, Tailwind v3, etc.) are already declared in
+`package.json`, so a single `npm install` is enough.
 
-### Required: images
-Place hobby images in `/public/images/` matching the filenames in `lib/hobbies.ts`:
-```
-/public/images/photography.png
-/public/images/painting.png
-/public/images/drawing.png
-/public/images/writing.png
-```
+### Styling requirements
+- **Tailwind v3** is pinned, with a `postcss.config.js` that loads `tailwindcss` +
+  `autoprefixer`. Without that PostCSS config, no utility classes are generated.
+- The `@/*` path alias is set in `tsconfig.json` (`baseUrl: "."`, `paths: { "@/*": ["./*"] }`).
+
+### Images
+Illustrations live in `/public/images/`. Hobby tiles use the `*_select.png` files
+referenced in `lib/hobbies.ts`; the home page uses the plain illustrations and the
+cursive heading artwork (`rehobbie_logo.png`, `used_to_like_heading.png`,
+`why_stopped.png`, `get_started_button.png`).
 
 ---
 
-## Onboarding Flow
+## Flow
 
 ```
 / (Home)
@@ -111,41 +111,62 @@ Place hobby images in `/public/images/` matching the filenames in `lib/hobbies.t
 /why-stopped         — pick reasons for stopping
   ↓
 /ready-check         — swipe right = yes, left = no
-  ↓ yes                       ↓ no
-/dashboard           /explore
-(Phase 2)            (Phase 2)
+  ↓ yes                         ↓ no
+/dashboard                    /explore
+- skill level selector        - hobbies you didn't pick
+- AI recovery plan (Foundry)  - "something completely new?"
+- resource shelf              - tapping a card restarts the
+- "others like you"             flow with that hobby pre-selected
 ```
 
 ---
 
 ## Adding New Hobbies
 
-Edit `lib/hobbies.ts` — the grid adapts automatically:
+Edit `lib/hobbies.ts` — the onboarding grid adapts automatically:
 
 ```ts
 export const HOBBIES: Hobby[] = [
-  { id: "photography", label: "Photography", image: "/images/photography.png" },
+  { id: "photography", label: "Photography", image: "/images/camera_select.png" },
   // add new entry here ↓
-  { id: "gardening", label: "Gardening", image: "/images/gardening.png" },
+  { id: "gardening", label: "Gardening", image: "/images/gardening_select.png" },
 ];
 ```
 
-No other files need to change.
+Optionally add matching entries to `lib/resources.ts` (books / videos / communities).
+If a hobby has no curated resources, `getResources` falls back to a generic set, so
+nothing breaks.
 
 ---
 
-## Phase 2 — Next Steps
+## AI Recovery Plan (Foundry)
 
-See `NEXT_STEPS.md` for the full Copilot handoff checklist, including:
-- Supabase anonymous sessions (no login required)
-- PostHog event tracking per step
-- Dashboard: skill level selector + resource cards + community section
-- Foundry IQ integration for personalised recovery plans
-- Explore page for the "no" swipe path
+`lib/foundry.ts` exposes:
+
+```ts
+generateRecoveryPlan({ hobby, skillLevel, stopReasons }): Promise<RecoveryPlan>
+```
+
+It currently returns a structured, deterministic plan generated locally (tailored to
+the chosen skill level and the reasons the user stopped), with a simulated delay so the
+dashboard can show a "generating" state. To go live, replace the body of
+`generateRecoveryPlan` with a Foundry call that returns the same `RecoveryPlan` shape —
+the rest of the dashboard needs no changes.
+
+---
+
+## Phase 2 — Remaining Integrations
+
+The dashboard and explore UIs are built. Still open (see `copilot-instruct.md`):
+- Wire the real Microsoft Foundry IQ call in `lib/foundry.ts`
+- PostHog event tracking per step (`posthog-js` is installed)
+- Supabase anonymous sessions to persist journeys (no login required)
 
 ---
 
 ## Notes
-- No user accounts required — anonymous Supabase sessions track journeys without sign-up, respecting the "users abandon things easily" design principle
-- All illustrated components have clear `// PLACEHOLDER` comments marking where your custom artwork slots in
-- The swipe card outer `<motion.div>` must stay in place when swapping in your illustrated component — it owns the drag physics
+- No user accounts required — the flow is designed to respect the "users abandon things
+  easily" principle, so it never blocks on sign-up.
+- The Zustand store is in-memory only; a full browser reload resets onboarding state.
+- The `SwipeCard` outer `<motion.div>` owns the drag physics — keep it when swapping in
+  custom artwork.

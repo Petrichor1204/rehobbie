@@ -1,19 +1,94 @@
-import Link from "next/link";
+"use client";
+// app/dashboard/page.tsx — Phase 2: the "swipe yes" destination.
+// Order: skill selector → AI recovery plan (Foundry) → resources → others like you.
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { motion } from "motion/react";
+import { useOnboardingStore } from "@/store/onboarding";
+import { getResources } from "@/lib/resources";
+import { generateRecoveryPlan } from "@/lib/foundry";
+import { PageFrame } from "@/components/PageFrame";
+import { SkillSelector } from "@/components/dashboard/SkillSelector";
+import { RecoveryPlanCard } from "@/components/dashboard/RecoveryPlanCard";
+import { ResourceShelf } from "@/components/dashboard/ResourceShelf";
+import { OthersLikeYou } from "@/components/dashboard/OthersLikeYou";
+import { RecoveryPlan, SkillLevel } from "@/types";
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { favoriteHobby, stopReasons, skillLevel, setSkillLevel } = useOnboardingStore();
+
+  const [plan, setPlan] = useState<RecoveryPlan | null>(null);
+  const [loading, setLoading] = useState(false);
+  const requestId = useRef(0);
+
+  // If someone lands here without finishing the flow, send them home.
+  useEffect(() => {
+    if (!favoriteHobby) router.replace("/");
+  }, [favoriteHobby, router]);
+
+  // Fire the AI plan whenever the hobby, level, or reasons change.
+  useEffect(() => {
+    if (!favoriteHobby || !skillLevel) {
+      setPlan(null);
+      return;
+    }
+    const id = ++requestId.current;
+    setLoading(true);
+    setPlan(null);
+    generateRecoveryPlan({ hobby: favoriteHobby, skillLevel, stopReasons }).then(
+      (result) => {
+        // Ignore stale responses (level changed mid-flight).
+        if (id === requestId.current) {
+          setPlan(result);
+          setLoading(false);
+        }
+      }
+    );
+  }, [favoriteHobby, skillLevel, stopReasons]);
+
+  if (!favoriteHobby) return null;
+
+  const resources = getResources(favoriteHobby.id, favoriteHobby.label);
+
+  function handleSkill(level: SkillLevel) {
+    setSkillLevel(level);
+  }
+
   return (
-    <main className="min-h-screen bg-rehobbie-cream text-rehobbie-ink flex items-center justify-center px-6 py-12">
-      <div className="max-w-lg text-center bg-white border-2 border-rehobbie-border rounded-3xl shadow-sm p-10">
-        <h1 className="font-sketch text-3xl text-rehobbie-ink mb-4">Dashboard coming soon</h1>
-        <p className="font-body text-sm text-rehobbie-subtext mb-8">
-          This is a placeholder for the dashboard. Once your resume flow is built, users will land here after confirming they want to continue.
-        </p>
-        <Link href="/">
-          <button className="px-6 py-3 rounded-full bg-rehobbie-green text-rehobbie-ink font-semibold hover:bg-rehobbie-green-hover transition-colors">
-            Back to home
-          </button>
-        </Link>
+    <PageFrame onBack={() => router.push("/")} backLabel="← Home">
+      {/* Header */}
+      <header className="flex items-center gap-4 mb-10">
+        <div className="relative w-20 h-20 shrink-0">
+          <Image
+            src={favoriteHobby.image}
+            alt={favoriteHobby.label}
+            width={80}
+            height={80}
+            className="object-contain drop-shadow-sm"
+            priority
+          />
+        </div>
+        <div>
+          <p className="font-body text-sm text-rehobbie-muted">welcome back to</p>
+          <motion.h1
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="font-sketch text-4xl font-bold text-rehobbie-ink leading-none"
+          >
+            {favoriteHobby.label}
+          </motion.h1>
+        </div>
+      </header>
+
+      <div className="flex flex-col gap-12">
+        <SkillSelector value={skillLevel} onChange={handleSkill} />
+        <RecoveryPlanCard plan={plan} loading={loading} hasSkillLevel={!!skillLevel} />
+        <ResourceShelf resources={resources} />
+        <OthersLikeYou hobbyLabel={favoriteHobby.label} />
       </div>
-    </main>
+    </PageFrame>
   );
 }

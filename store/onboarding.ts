@@ -22,6 +22,8 @@ type OnboardingStore = {
   setWantsToResume: (val: boolean) => void;
   setSkillLevel: (level: SkillLevel) => void;
   reset: () => void;
+  // Re-enter the flow for a brand-new hobby (used by /explore).
+  restartWithHobby: (hobby: Hobby) => void;
 };
 
 const initialState = {
@@ -62,4 +64,11 @@ export const useOnboardingStore = create<OnboardingStore>((set) => ({
   setWantsToResume: (val) => set({ wantsToResume: val }),
   setSkillLevel: (level) => set({ skillLevel: level }),
   reset: () => set(initialState),
+
+  restartWithHobby: (hobby) =>
+    set({
+      ...initialState,
+      selectedHobbies: [hobby],
+      favoriteHobby: hobby,
+    }),
 }));

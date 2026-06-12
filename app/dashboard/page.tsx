@@ -9,6 +9,7 @@ import { motion } from "motion/react";
 import { useOnboardingStore } from "@/store/onboarding";
 import { getResources } from "@/lib/resources";
 import { generateRecoveryPlan } from "@/lib/foundry";
+import { capture } from "@/lib/posthog";
 import { PageFrame } from "@/components/PageFrame";
 import { SkillSelector } from "@/components/dashboard/SkillSelector";
 import { RecoveryPlanCard } from "@/components/dashboard/RecoveryPlanCard";
@@ -55,6 +56,10 @@ export default function DashboardPage() {
 
   function handleSkill(level: SkillLevel) {
     setSkillLevel(level);
+    capture("dashboard_skill_selected", {
+      level,
+      hobby: favoriteHobby?.id,
+    });
   }
 
   return (

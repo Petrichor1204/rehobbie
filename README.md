@@ -24,9 +24,13 @@ Help users rediscover abandoned creative hobbies (Photography, Painting, Drawing
 - **Animation:** Motion (`motion/react`)
 - **State:** Zustand
 - **Fonts:** Caveat (sketch feel) + Nunito, via `next/font/google`
-- **AI:** Microsoft Foundry IQ — recovery plan generator in `lib/foundry.ts` (currently a local generator behind a Foundry-ready seam)
+- **AI:** Microsoft Foundry IQ — server route `app/api/recovery-plan/route.ts`, with a local generator fallback in `lib/foundry.ts`
+- **Analytics:** PostHog (`lib/posthog.ts`)
+- **Persistence:** Supabase anonymous sessions (`lib/supabase.ts`)
 
-> Note: `posthog-js` is installed but not yet wired. Supabase is referenced in the handoff notes but not installed/used yet.
+> Every integration is **optional and env-gated**: with its keys missing it cleanly
+> no-ops (sessions skip, analytics skip, the AI plan uses the local generator), so
+> the app always runs. See [Environment & Integrations](#environment--integrations).
 
 ---
 
@@ -44,9 +48,13 @@ app/
   dashboard/page.tsx         ← Phase 2: swipe yes → skill, AI plan, resources
   explore/page.tsx           ← Phase 2: swipe no → other / new hobbies
 
+app/api/
+  recovery-plan/route.ts     ← Server route → Microsoft Foundry IQ (key stays server-side)
+
 components/
   SketchBorder.tsx           ← Animated hand-drawn page border (SVG)
   PageFrame.tsx              ← Scrollable Phase-2 page shell (border + lined paper)
+  AnalyticsProvider.tsx      ← Boots PostHog + anon Supabase session, tracks pageviews
   onboarding/
     OnboardingShell.tsx      ← Centered shell for the 4 onboarding steps
     HobbyCard.tsx            ← Illustrated hobby tile with selected state
@@ -61,7 +69,9 @@ components/
 lib/
   hobbies.ts                 ← Hobbies, stop reasons, skill levels, "new" hobbies
   resources.ts               ← Resource cards keyed by hobby id (+ generic fallback)
-  foundry.ts                 ← AI recovery plan generator (Foundry integration seam)
+  foundry.ts                 ← Calls the Foundry route; local fallback generator
+  supabase.ts                ← Anonymous session client + saveSession (env-gated)
+  posthog.ts                 ← Analytics init + capture helpers (env-gated)
 
 store/
   onboarding.ts              ← Zustand store (selections, favourite, reasons, skill)
@@ -78,13 +88,15 @@ copilot-instruct.md          ← Original handoff notes (Supabase/PostHog/Foundr
 
 ```bash
 npm install
+cp .env.local.example .env.local   # optional — fill in keys to enable integrations
 npm run dev
 ```
 
 Open http://localhost:3000 — click "Get started" to enter the onboarding flow.
 
-All runtime dependencies (Motion, Zustand, Tailwind v3, etc.) are already declared in
-`package.json`, so a single `npm install` is enough.
+All runtime dependencies (Motion, Zustand, Tailwind v3, Supabase, PostHog, etc.) are
+already declared in `package.json`, so a single `npm install` is enough. The app runs
+with **no configuration** — all integrations are optional (see below).
 
 ### Styling requirements
 - **Tailwind v3** is pinned, with a `postcss.config.js` that loads `tailwindcss` +
@@ -139,28 +151,34 @@ nothing breaks.
 
 ---
 
-## AI Recovery Plan (Foundry)
+## Environment & Integrations
 
-`lib/foundry.ts` exposes:
+Copy `.env.local.example` → `.env.local` and fill in whichever keys you have. Each
+block is independent and optional.
 
-```ts
-generateRecoveryPlan({ hobby, skillLevel, stopReasons }): Promise<RecoveryPlan>
-```
+### Supabase — anonymous sessions (Step 6)
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- On first load, `AnalyticsProvider` calls `ensureAnonSession()` (no sign-up). When the
+  user makes their swipe decision, `ready-check` fires `saveSession()` to write the
+  completed journey to a `sessions` table. The SQL for that table is in `lib/supabase.ts`.
+- Enable **Anonymous sign-ins** in Supabase → Authentication.
 
-It currently returns a structured, deterministic plan generated locally (tailored to
-the chosen skill level and the reasons the user stopped), with a simulated delay so the
-dashboard can show a "generating" state. To go live, replace the body of
-`generateRecoveryPlan` with a Foundry call that returns the same `RecoveryPlan` shape —
-the rest of the dashboard needs no changes.
+### PostHog — analytics (Step 7)
+- `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
+- `AnalyticsProvider` initialises PostHog and captures pageviews on every route change.
+- Per-step events: `onboarding_hobby_selected`, `onboarding_favourite_set`,
+  `onboarding_reason_selected`, `onboarding_swipe_decision`, `dashboard_skill_selected`.
 
----
-
-## Phase 2 — Remaining Integrations
-
-The dashboard and explore UIs are built. Still open (see `copilot-instruct.md`):
-- Wire the real Microsoft Foundry IQ call in `lib/foundry.ts`
-- PostHog event tracking per step (`posthog-js` is installed)
-- Supabase anonymous sessions to persist journeys (no login required)
+### Microsoft Foundry IQ — AI recovery plan (Step 9)
+- `AZURE_FOUNDRY_ENDPOINT`, `AZURE_FOUNDRY_API_KEY`, `AZURE_FOUNDRY_DEPLOYMENT`,
+  `AZURE_FOUNDRY_API_VERSION` (server-side only — the key never reaches the browser).
+- The dashboard calls `generateRecoveryPlan()` (`lib/foundry.ts`), which POSTs to the
+  server route `app/api/recovery-plan/route.ts`. That route asks Foundry (Azure
+  OpenAI–compatible chat completions) for a strict-JSON `RecoveryPlan`, validates the
+  shape, and returns it.
+- **Fallback:** if Foundry is unconfigured (route returns `501`), errors, or returns an
+  unexpected shape, the client falls back to a deterministic local generator tailored to
+  the chosen skill level and stop reasons — so a plan always renders.
 
 ---
 

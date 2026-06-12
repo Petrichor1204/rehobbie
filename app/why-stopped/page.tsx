@@ -7,13 +7,20 @@ import { STOP_REASONS } from "@/lib/hobbies";
 import { useOnboardingStore } from "@/store/onboarding";
 import { ReasonChip } from "@/components/onboarding/ReasonChip";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
-import { StopReason } from "@/types";
+import { capture } from "@/lib/posthog";
 
 export default function WhyStoppedPage() {
   const router = useRouter();
   const { stopReasons, toggleStopReason, favoriteHobby } = useOnboardingStore();
 
   const hasSelection = stopReasons.length > 0;
+
+  function handleNext() {
+    capture("onboarding_reason_selected", {
+      reasons: stopReasons.map((r) => r.id),
+    });
+    router.push("/ready-check");
+  }
 
   return (
     <OnboardingShell onBack={() => router.back()}>
@@ -59,7 +66,7 @@ export default function WhyStoppedPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 16 }}
-              onClick={() => router.push("/ready-check")}
+              onClick={handleNext}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               className="

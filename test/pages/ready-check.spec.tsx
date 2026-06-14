@@ -1,50 +1,91 @@
 /**
  * @vitest-environment jsdom
  */
-import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { vi } from 'vitest'
+import React from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
-// Mock motion to avoid animation internals (provide both `p` and `div`)
-vi.mock('motion/react', () => ({
+const { push, saveSession } = vi.hoisted(() => ({
+  push: vi.fn(),
+  saveSession: vi.fn(),
+}));
+
+vi.mock("motion/react", () => ({
   motion: {
-    div: ({ children, ...p }: any) => React.createElement('div', p, children),
-    p: ({ children, ...p }: any) => React.createElement('p', p, children),
+    div: ({ children, ...props }: React.ComponentProps<"div">) =>
+      React.createElement("div", props, children),
+    p: ({ children, ...props }: React.ComponentProps<"p">) =>
+      React.createElement("p", props, children),
   },
-}))
+}));
 
-// Mock next/navigation
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), back: vi.fn() }) }))
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push, back: vi.fn() }),
+}));
 
-// Mock saveSession to avoid network (match the app import path)
-vi.mock('@/lib/supabase', () => ({ saveSession: vi.fn() }))
+vi.mock("@/lib/supabase", () => ({ saveSession }));
 
-// Replace SwipeCard with a button that triggers onSwipe(true) (match app import path)
-vi.mock('@/components/onboarding/SwipeCard', () => ({ SwipeCard: ({ onSwipe }: any) => React.createElement('button', { onClick: () => onSwipe(true) }, 'SWIPE') }))
+vi.mock("@/components/onboarding/SwipeCard", () => ({
+  SwipeCard: ({ onSwipe }: { onSwipe: (value: boolean) => void }) =>
+    React.createElement(
+      "div",
+      {},
+      React.createElement("button", { type: "button", onClick: () => onSwipe(true) }, "YES"),
+      React.createElement("button", { type: "button", onClick: () => onSwipe(false) }, "NO"),
+    ),
+}));
 
-// Simplify OnboardingShell to render children (match app import path)
-vi.mock('@/components/onboarding/OnboardingShell', () => ({ OnboardingShell: ({ children }: any) => React.createElement('div', {}, children) }))
+vi.mock("@/components/onboarding/OnboardingShell", () => ({
+  OnboardingShell: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", {}, children),
+}));
 
-import ReadyCheckPage from '../../app/ready-check/page'
-import { useOnboardingStore } from '../../store/onboarding'
+import ReadyCheckPage from "@/app/ready-check/page";
+import { useOnboardingStore } from "@/store/onboarding";
+import { gardening, noTimeReason } from "../helpers/fixtures";
 
-describe('ReadyCheckPage', () => {
+describe("ReadyCheckPage", () => {
   beforeEach(() => {
-    useOnboardingStore.getState().reset()
+    push.mockReset();
+    saveSession.mockReset();
+    useOnboardingStore.getState().reset();
     useOnboardingStore.setState({
-      selectedHobbies: [{ id: 'gardening', label: 'Gardening' }],
-      favoriteHobby: { id: 'gardening', label: 'Gardening' },
-      stopReasons: [],
-      skillLevel: null,
-    } as any)
-  })
+      selectedHobbies: [gardening],
+      favoriteHobby: gardening,
+      stopReasons: [noTimeReason],
+      skillLevel: "novice",
+    });
+  });
 
-  test('renders and handles swipe', () => {
-    render(<ReadyCheckPage />)
-    expect(screen.getByText(/swipe or tap to decide/i)).toBeInTheDocument()
-    const btn = screen.getByText('SWIPE')
-    fireEvent.click(btn)
-    // after swipe the component should attempt navigation — mock router prevents real navigation
-    expect(btn).toBeTruthy()
-  })
-})
+  test("renders swipe prompt and chosen hobby", () => {
+    render(<ReadyCheckPage />);
+    expect(screen.getByText(/swipe or tap to decide/i)).toBeInTheDocument();
+    expect(screen.getByText(/gardening/i)).toBeInTheDocument();
+  });
+
+  test("swipe yes saves session and routes to dashboard", () => {
+    render(<ReadyCheckPage />);
+    fireEvent.click(screen.getByText("YES"));
+
+    expect(useOnboardingStore.getState().wantsToResume).toBe(true);
+    expect(saveSession).toHaveBeenCalledWith({
+      selected_hobbies: ["gardening"],
+      favorite_hobby: "gardening",
+      stop_reasons: ["no-time"],
+      wants_to_resume: true,
+      skill_level: "novice",
+    });
+    expect(push).toHaveBeenCalledWith("/dashboard");
+  });
+
+  test("swipe no saves session and routes to explore", () => {
+    render(<ReadyCheckPage />);
+    fireEvent.click(screen.getByText("NO"));
+
+    expect(useOnboardingStore.getState().wantsToResume).toBe(false);
+    expect(saveSession).toHaveBeenCalledWith(
+      expect.objectContaining({ wants_to_resume: false }),
+    );
+    expect(push).toHaveBeenCalledWith("/explore");
+  });
+});

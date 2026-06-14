@@ -202,25 +202,37 @@ Optionally add resources in `lib/resources.ts` — generic fallback covers anyth
 
 ## Testing
 
-- Test harness: `vitest` with `@testing-library/react`, `@testing-library/jest-dom`, `msw`, `zod`, and `jsdom`.
-- Added `npm` scripts: `test`, `test:watch`, `test:run` (see `package.json`).
-- Config: `vitest.config.ts` (jsdom env, `@/*` path alias for tests) and global setup at `test/setup.ts`.
-- Implemented unit + component tests:
-  - `test/lib/ai-provider.spec.ts` — provider resolution and upstream call behavior (MSW)
-  - `test/lib/discover.spec.ts` — `discoverHobbies` fallback and API handling
-  - `test/pages/ready-check.spec.tsx` — `ReadyCheckPage` render and swipe handling (component mocks)
-- How to run locally:
+**Stack:** Vitest + jsdom, `@testing-library/react`, `@testing-library/jest-dom`, MSW. Shared fixtures live in `test/helpers/fixtures.ts`.
+
+**Run locally:**
 
 ```bash
-npm install
-npm test       # run tests once
-npm test:watch # run in watch mode
+npm run test:run    # single run (CI-friendly)
+npm test            # same as test:run
+npm run test:watch  # watch mode
+npm run typecheck   # tsc — app code only (test/ excluded)
+npm run lint        # ESLint flat config
 ```
 
-- Notes on mocks and stability:
-  - External LLM/network calls are mocked (MSW or stubbed `fetch`) so tests don't require real keys.
-  - `vitest.config.ts` includes an alias for `@/` so imports used in app files resolve during tests.
-  - Tests were run locally and the suite passed (3 test files, 6 tests).
+**Current suite:** 11 files, 39 tests — all passing (~2s). No live Foundry keys required; AI and network calls are mocked.
+
+| Area | File | What it covers |
+|---|---|---|
+| **Store** | `test/store/onboarding.spec.ts` | `toggleHobby`, swipe yes/no state, `startDiscovery`, skill/reason toggles, `reset` |
+| **API routes** | `test/api/recovery-plan.spec.ts` | 400/501/502 errors + valid AI plan response |
+| | `test/api/discover-hobbies.spec.ts` | Empty catalog, AI off, catalog-id filtering, all-filtered 502 |
+| | `test/api/find-peers.spec.ts` | Validation, 501, happy path, malformed AI payload |
+| **Client libs** | `test/lib/foundry.spec.ts` | API success, comeback fallback, discovery fallback |
+| | `test/lib/discover.spec.ts` | Invalid API payload fallback, valid API response |
+| | `test/lib/peers.spec.ts` | API success, resource-based community fallback |
+| **AI provider** | `test/lib/ai-provider.spec.ts` | GitHub Models resolution + upstream calls (MSW) |
+| | `test/lib/ai-provider-foundry.spec.ts` | Foundry / Azure OpenAI URL resolution, provider priority |
+| | `test/lib/extract-json.spec.ts` | Raw JSON, fenced blocks, embedded JSON parsing |
+| **Pages** | `test/pages/ready-check.spec.tsx` | Render, swipe yes → `/dashboard` + `saveSession`, swipe no → `/explore` |
+
+**Config:** `vitest.config.ts` (jsdom, `@/*` alias, globals) · `test/setup.ts` (MSW server lifecycle)
+
+**Not covered yet:** dashboard/explore/onboarding page UI, individual components (`RecoveryPlanWrapped`, `HobbyKeycap`), E2E browser flows.
 
 ````
 

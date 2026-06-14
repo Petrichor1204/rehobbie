@@ -1,3 +1,4 @@
+````markdown
 # Rehobbie — Hobby Recovery App
 
 ## Purpose
@@ -190,36 +191,35 @@ Optionally add resources in `lib/resources.ts` — generic fallback covers anyth
 
 ---
 
-## Wrap-up checklist (hackathon demo)
-
-### Before you demo
-- [ ] `.env.local` filled with Foundry keys (Grok deployed on Foundry)
-- [ ] `npm run dev` → http://localhost:3000 loads cleanly
-- [ ] Supabase: anonymous sign-ins enabled + `sessions` table created (optional)
-
-### Demo script (≈3 min)
-1. **Home** — show horizontal hobby illustrations, click Get started
-2. **Onboarding** — pick 2 hobbies, choose a favourite, select **"No one to do it with"**
-3. **Swipe yes** → Dashboard → pick skill level → **tap through Wrapped plan slides**
-4. **Scroll down** → show **"people at your level"** Foundry peer cards (because of loneliness reason)
-5. **Go back**, repeat flow but **swipe no** → Explore page with Foundry discovery cards
-6. **Tap a new hobby** (e.g. Gardening) → Dashboard in discovery mode → Wrapped first-time plan
-
-### What to highlight for judges
-- **No login** — anonymous Supabase session, zero friction
-- **Foundry IQ used three ways** — comeback plan, hobby discovery, peer matching
-- **Visual-first design** — Wrapped slides, discovery cards, minimal words
-- **Graceful fallbacks** — app works even without API keys
-
-### Optional polish (if time allows)
-- [ ] Deploy to Vercel with env vars in project settings
-- [ ] Record a 60-second demo video
-- [ ] Rotate Azure Foundry key if it was ever committed to git
-
----
 
 ## Notes
 - No user accounts — the flow respects "users abandon things easily."
 - Zustand store is in-memory; a full browser reload resets onboarding state.
 - The `SwipeCard` outer `<motion.div>` owns drag physics — keep it when swapping artwork.
 - `.env.local` is gitignored; never commit real keys to `.env.local.example`.
+
+---
+
+## Testing
+
+- Test harness: `vitest` with `@testing-library/react`, `@testing-library/jest-dom`, `msw`, `zod`, and `jsdom`.
+- Added `npm` scripts: `test`, `test:watch`, `test:run` (see `package.json`).
+- Config: `vitest.config.ts` (jsdom env, `@/*` path alias for tests) and global setup at `test/setup.ts`.
+- Implemented unit + component tests:
+  - `test/lib/ai-provider.spec.ts` — provider resolution and upstream call behavior (MSW)
+  - `test/lib/discover.spec.ts` — `discoverHobbies` fallback and API handling
+  - `test/pages/ready-check.spec.tsx` — `ReadyCheckPage` render and swipe handling (component mocks)
+- How to run locally:
+
+```bash
+npm install
+npm test       # run tests once
+npm test:watch # run in watch mode
+```
+
+- Notes on mocks and stability:
+  - External LLM/network calls are mocked (MSW or stubbed `fetch`) so tests don't require real keys.
+  - `vitest.config.ts` includes an alias for `@/` so imports used in app files resolve during tests.
+  - Tests were run locally and the suite passed (3 test files, 6 tests).
+
+````

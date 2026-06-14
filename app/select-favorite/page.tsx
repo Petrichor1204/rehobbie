@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import Image from "next/image";
 import { useOnboardingStore } from "@/store/onboarding";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
+import { capture } from "@/lib/posthog";
 import { Hobby } from "@/types";
 
 export default function SelectFavoritePage() {
@@ -23,6 +24,7 @@ export default function SelectFavoritePage() {
 
   function handleSelect(hobby: Hobby) {
     setFavoriteHobby(hobby);
+    capture("onboarding_favourite_set", { hobby: hobby.id });
     setTimeout(() => router.push("/why-stopped"), 300);
   }
 

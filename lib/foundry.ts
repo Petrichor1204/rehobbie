@@ -6,21 +6,12 @@ import {
 } from "@/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Microsoft Foundry IQ — AI recovery plan (Step 5b)
+// Microsoft Foundry IQ — AI recovery plan (Step 9)
 //
-// This is the integration point for Foundry. Right now it returns a structured,
-// deterministic plan generated locally so the dashboard works end-to-end. To go
-// live, replace the body of `generateRecoveryPlan` with a Foundry call that
-// returns the same `RecoveryPlan` shape, e.g.:
-//
-//   const res = await fetch(process.env.FOUNDRY_ENDPOINT!, {
-//     method: "POST",
-//     headers: { Authorization: `Bearer ${process.env.FOUNDRY_KEY}` },
-//     body: JSON.stringify({ prompt: buildPrompt(input) }),
-//   });
-//   return (await res.json()) as RecoveryPlan;
-//
-// Keeping the local generator below as a fallback is recommended.
+// `generateRecoveryPlan` first asks the server route /api/recovery-plan, which
+// calls Microsoft Foundry IQ (the key stays server-side). If Foundry is not
+// configured, errors, or returns an unexpected shape, we fall back to the local
+// deterministic generator below — so the dashboard always renders a plan.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SKILL_FRAMING: Record<SkillLevel, string> = {
@@ -92,7 +83,32 @@ const REASON_REMEDY: Record<string, RecoveryStep> = {
   },
 };
 
-function buildPlan({ hobby, skillLevel, stopReasons }: RecoveryPlanInput): RecoveryPlan {
+function buildPlan({ hobby, skillLevel, stopReasons, mode = "comeback" }: RecoveryPlanInput): RecoveryPlan {
+  if (mode === "discovery") {
+    return {
+      headline: `Try ${hobby.label}`,
+      intro: "First time? Perfect. Small steps only.",
+      steps: [
+        {
+          title: "Set up in 5",
+          detail: "Gather the bare minimum. Phone, pencil, pot — whatever it takes.",
+          duration: "5 min",
+        },
+        {
+          title: "One tiny win",
+          detail: `Do the smallest possible ${hobby.label.toLowerCase()} thing. Done beats perfect.`,
+          duration: "15 min",
+        },
+        {
+          title: "Snap & save",
+          detail: "Take one photo of what you made. Proof you started.",
+          duration: "1 min",
+        },
+      ],
+      encouragement: "You just began. That's the whole game.",
+    };
+  }
+
   const framing = SKILL_FRAMING[skillLevel];
 
   const steps: RecoveryStep[] = [SKILL_FIRST_STEP[skillLevel]];
@@ -116,18 +132,45 @@ function buildPlan({ hobby, skillLevel, stopReasons }: RecoveryPlanInput): Recov
       : "";
 
   return {
-    headline: `Your ${hobby.label} comeback`,
-    intro: `A gentle re-entry plan for ${framing}.${reasonText}`,
+    headline: `${hobby.label} comeback`,
+    intro: `Gentle re-entry, ${framing.split(" ")[0]} pace.${reasonText}`,
     steps,
-    encouragement: "You already did the hardest part — deciding to come back. Take it one small step at a time.",
+    encouragement: "Hardest part done — you came back.",
   };
+}
+
+function isValidPlan(plan: unknown): plan is RecoveryPlan {
+  if (!plan || typeof plan !== "object") return false;
+  const p = plan as Partial<RecoveryPlan>;
+  return (
+    typeof p.headline === "string" &&
+    typeof p.intro === "string" &&
+    typeof p.encouragement === "string" &&
+    Array.isArray(p.steps) &&
+    p.steps.length > 0
+  );
 }
 
 export async function generateRecoveryPlan(
   input: RecoveryPlanInput
 ): Promise<RecoveryPlan> {
-  // Simulated latency so the UI can show a "generating" state. Replace this
-  // whole function body with the real Foundry call when ready.
-  await new Promise((resolve) => setTimeout(resolve, 900));
+  // Try Foundry IQ via the server route first.
+  try {
+    const res = await fetch("/api/recovery-plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (res.ok) {
+      const plan = await res.json();
+      if (isValidPlan(plan)) return plan;
+    }
+  } catch {
+    // Network/route failure — fall through to the local generator.
+  }
+
+  // Fallback: deterministic local plan (also covers the no-Foundry case). The
+  // small delay keeps the dashboard's "generating" state from flashing.
+  await new Promise((resolve) => setTimeout(resolve, 500));
   return buildPlan(input);
 }

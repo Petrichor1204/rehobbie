@@ -1,20 +1,35 @@
 # Rehobbie — Hobby Recovery App
 
 ## Purpose
-Help users rediscover abandoned creative hobbies (Photography, Painting, Drawing, Writing) through a seamless, no-login onboarding flow that leads them back to what they loved — and then hands them a personalised plan to actually start again.
+Help users rediscover abandoned creative hobbies through a seamless, no-login onboarding flow — then hand them a personalised AI plan to actually start again. If they're not ready to resume, Foundry IQ suggests brand-new hobbies to discover instead.
 
 ---
 
 ## Features
-- Mobile-first, hand-drawn aesthetic: lined-paper backgrounds + an animated sketchy page border
-- Illustrated onboarding with large tappable cards and cursive heading artwork
-- Multi-select hobby picker on a centered, flexible grid (add new hobbies in one file)
-- Auto-skip logic — if only 1 hobby is selected, the "pick favourite" step is bypassed
-- Swipable yes/no card for the "pick up where you left off?" decision
-- Zustand store keeps all state across steps without prop drilling
-- **Dashboard (swipe yes):** skill-level selector → AI recovery plan → resource shelf → social proof
-- **Explore (swipe no):** other hobbies + brand-new suggestions that restart the flow pre-selected
-- Motion (`motion/react`) floating animations on home and spring transitions on every step
+
+### Onboarding (Phase 1)
+- Hand-drawn aesthetic: lined-paper backgrounds + animated sketchy page border
+- Illustrated hobby picker with cursive heading artwork
+- Multi-select grid with auto-skip when only 1 hobby is picked
+- Swipable yes/no card: *"wanna pick up where you left off?"*
+- Zustand store carries state across all steps — no prop drilling, no login
+
+### Dashboard — swipe yes (Phase 2)
+- Skill-level selector (Novice → Expert + Just for fun)
+- **Spotify Wrapped-style AI plan** — tap-through gradient slides, minimal words, big visuals
+- Resource shelf (books / YouTube / communities) keyed by hobby
+- **"People at your level"** — when loneliness was the stop reason, Foundry IQ finds communities at the user's exact skill level (Reddit, Discord, Meetup, etc.)
+- "Others like you" social proof (shown when community matching isn't needed)
+
+### Explore — swipe no (Phase 2)
+- Foundry IQ curates **brand-new hobbies** the user has never tried — not old ones they abandoned
+- Visual discovery cards: illustration + emoji + punchy hook + one-line appeal
+- Tapping a card jumps straight to the dashboard in **discovery mode** with a first-time starter plan
+
+### Integrations
+- **Microsoft Foundry IQ (Grok)** — recovery plans, hobby discovery, peer matching (3 server routes)
+- **Supabase** — anonymous sessions, journey persistence (optional)
+- **PostHog** — per-step analytics + pageviews (optional)
 
 ---
 
@@ -23,10 +38,13 @@ Help users rediscover abandoned creative hobbies (Photography, Painting, Drawing
 - **Styling:** Tailwind CSS v3 (`tailwind.config.ts` + `postcss.config.js`)
 - **Animation:** Motion (`motion/react`)
 - **State:** Zustand
-- **Fonts:** Caveat (sketch feel) + Nunito, via `next/font/google`
-- **AI:** Microsoft Foundry IQ — recovery plan generator in `lib/foundry.ts` (currently a local generator behind a Foundry-ready seam)
+- **Fonts:** Caveat (sketch) + Nunito, via `next/font/google`
+- **AI:** Microsoft Foundry IQ via `lib/ai-provider.ts` (Grok 4.1 Fast on Azure)
+- **Analytics:** PostHog (`lib/posthog.ts`)
+- **Persistence:** Supabase anonymous sessions (`lib/supabase.ts`)
 
-> Note: `posthog-js` is installed but not yet wired. Supabase is referenced in the handoff notes but not installed/used yet.
+> Every integration is **optional and env-gated** — the app runs with zero config.
+> AI features fall back to local generators when Foundry keys are missing.
 
 ---
 
@@ -34,42 +52,45 @@ Help users rediscover abandoned creative hobbies (Photography, Painting, Drawing
 
 ```
 app/
-  page.tsx                   ← Home — floating illustrations, logo, get-started CTA
-  layout.tsx                 ← Root layout with font setup
-  global.css                 ← Tailwind layers, lined-paper + sketch-border styles
-  onboarding/page.tsx        ← Step 1: hobby picker (multi-select grid)
-  select-favorite/page.tsx   ← Step 2: pick favourite (auto-skipped if 1 hobby)
-  why-stopped/page.tsx       ← Step 3: stop reasons (multi-select chips)
-  ready-check/page.tsx       ← Step 4: swipable yes/no card
-  dashboard/page.tsx         ← Phase 2: swipe yes → skill, AI plan, resources
-  explore/page.tsx           ← Phase 2: swipe no → other / new hobbies
+  page.tsx                      ← Home — horizontal hobby band, logo, get-started CTA
+  layout.tsx                    ← Root layout + AnalyticsProvider
+  global.css                    ← Tailwind layers, lined-paper, sketch-border styles
+  onboarding/page.tsx           ← Step 1: hobby picker
+  select-favorite/page.tsx      ← Step 2: pick favourite (auto-skipped if 1 hobby)
+  why-stopped/page.tsx          ← Step 3: stop reasons
+  ready-check/page.tsx          ← Step 4: swipe card → saves session to Supabase
+  dashboard/page.tsx            ← Swipe yes / discovery → skill, Wrapped plan, peers, resources
+  explore/page.tsx              ← Swipe no → Foundry hobby discovery cards
+
+app/api/
+  recovery-plan/route.ts        ← Foundry: personalised comeback / first-time plan
+  discover-hobbies/route.ts     ← Foundry: brand-new hobby suggestions (swipe no)
+  find-peers/route.ts           ← Foundry: communities at user's skill level
 
 components/
-  SketchBorder.tsx           ← Animated hand-drawn page border (SVG)
-  PageFrame.tsx              ← Scrollable Phase-2 page shell (border + lined paper)
-  onboarding/
-    OnboardingShell.tsx      ← Centered shell for the 4 onboarding steps
-    HobbyCard.tsx            ← Illustrated hobby tile with selected state
-    ReasonChip.tsx           ← Pill button for stop reasons
-    SwipeCard.tsx            ← Drag-physics yes/no swipe card
+  SketchBorder.tsx              ← Animated hand-drawn page border (SVG)
+  PageFrame.tsx                 ← Scrollable Phase-2 page shell
+  AnalyticsProvider.tsx         ← PostHog init + Supabase anon session + pageviews
+  onboarding/                   ← HobbyCard, ReasonChip, SwipeCard, OnboardingShell
   dashboard/
-    SkillSelector.tsx        ← Horizontal scrollable skill-level pills
-    RecoveryPlanCard.tsx     ← AI plan with loading + reveal states
-    ResourceShelf.tsx        ← Books / YouTube / community columns
-    OthersLikeYou.tsx        ← Social-proof strip
+    SkillSelector.tsx           ← Horizontal skill-level pills
+    RecoveryPlanWrapped.tsx     ← Spotify Wrapped-style tap-through plan slides
+    PeopleAtYourLevel.tsx       ← Foundry peer/community cards (no-community reason)
+    ResourceShelf.tsx           ← Books / YouTube / community columns
+    OthersLikeYou.tsx           ← Static social-proof strip
 
 lib/
-  hobbies.ts                 ← Hobbies, stop reasons, skill levels, "new" hobbies
-  resources.ts               ← Resource cards keyed by hobby id (+ generic fallback)
-  foundry.ts                 ← AI recovery plan generator (Foundry integration seam)
+  hobbies.ts                    ← Hobbies, stop reasons, skill levels, discovery catalog
+  resources.ts                  ← Resource cards keyed by hobby id
+  ai-provider.ts                ← Shared Foundry / GitHub Models caller (server-side)
+  foundry.ts                    ← Client → /api/recovery-plan + local fallback
+  discover.ts                   ← Client → /api/discover-hobbies + local fallback
+  peers.ts                      ← Client → /api/find-peers + local fallback
+  supabase.ts                   ← Anonymous session + saveSession
+  posthog.ts                    ← Analytics helpers
 
-store/
-  onboarding.ts              ← Zustand store (selections, favourite, reasons, skill)
-
-types/
-  index.ts                   ← Hobby, StopReason, SkillLevel, Resource, RecoveryPlan, …
-
-copilot-instruct.md          ← Original handoff notes (Supabase/PostHog/Foundry ideas)
+store/onboarding.ts             ← Zustand store (selections, discovery flag, skill level)
+types/index.ts                  ← All TypeScript types
 ```
 
 ---
@@ -78,24 +99,22 @@ copilot-instruct.md          ← Original handoff notes (Supabase/PostHog/Foundr
 
 ```bash
 npm install
+cp .env.local.example .env.local   # fill in keys to enable integrations
 npm run dev
 ```
 
 Open http://localhost:3000 — click "Get started" to enter the onboarding flow.
 
-All runtime dependencies (Motion, Zustand, Tailwind v3, etc.) are already declared in
-`package.json`, so a single `npm install` is enough.
+The app runs with **no `.env.local`** — AI falls back to local generators, Supabase and PostHog no-op.
 
 ### Styling requirements
-- **Tailwind v3** is pinned, with a `postcss.config.js` that loads `tailwindcss` +
-  `autoprefixer`. Without that PostCSS config, no utility classes are generated.
-- The `@/*` path alias is set in `tsconfig.json` (`baseUrl: "."`, `paths: { "@/*": ["./*"] }`).
+- **Tailwind v3** is pinned with `postcss.config.js` (`tailwindcss` + `autoprefixer`).
+- The `@/*` path alias is in `tsconfig.json`.
 
 ### Images
-Illustrations live in `/public/images/`. Hobby tiles use the `*_select.png` files
-referenced in `lib/hobbies.ts`; the home page uses the plain illustrations and the
-cursive heading artwork (`rehobbie_logo.png`, `used_to_like_heading.png`,
-`why_stopped.png`, `get_started_button.png`).
+Illustrations live in `/public/images/`. Onboarding tiles use `*_select.png` files from
+`lib/hobbies.ts`; the home page uses plain illustrations plus heading artwork
+(`rehobbie_logo.png`, `used_to_like_heading.png`, `why_stopped.png`, `get_started_button.png`).
 
 ---
 
@@ -104,20 +123,61 @@ cursive heading artwork (`rehobbie_logo.png`, `used_to_like_heading.png`,
 ```
 / (Home)
   ↓ Get started
-/onboarding          — pick hobbies (1 or more)
+/onboarding           — pick hobbies (1 or more)
   ↓ if 2+ selected
-/select-favorite     — pick the one you loved most
-  ↓ (skipped if only 1 hobby picked)
-/why-stopped         — pick reasons for stopping
+/select-favorite      — pick the one you loved most
+  ↓ (skipped if only 1 hobby)
+/why-stopped          — pick reasons for stopping
   ↓
-/ready-check         — swipe right = yes, left = no
-  ↓ yes                         ↓ no
-/dashboard                    /explore
-- skill level selector        - hobbies you didn't pick
-- AI recovery plan (Foundry)  - "something completely new?"
-- resource shelf              - tapping a card restarts the
-- "others like you"             flow with that hobby pre-selected
+/ready-check          — swipe right = yes, left = no
+  ↓ yes                              ↓ no
+/dashboard                           /explore
+  skill level selector                 Foundry picks brand-new hobbies
+  Wrapped AI plan (tap-through)        visual discovery cards
+  peers at your level (if lonely)      tap → dashboard (discovery mode)
+  resource shelf                       first-time Wrapped plan
+  others like you
 ```
+
+---
+
+## Microsoft Foundry IQ — three AI surfaces
+
+All calls run **server-side** (`lib/ai-provider.ts`) so keys never reach the browser.
+Model: **Grok 4.1 Fast Non-Reasoning** (Direct from Azure) on the Foundry `services.ai.azure.com/models` endpoint.
+
+| Route | Trigger | Input | Output |
+|---|---|---|---|
+| `/api/recovery-plan` | Dashboard + skill level picked | hobby, skill level, stop reasons, mode (`comeback` \| `discovery`) | Short JSON plan → Wrapped slides |
+| `/api/discover-hobbies` | `/explore` page load (swipe no) | tried hobbies, rejected hobby, stop reasons, catalog | Headline + 3–4 visual discovery cards |
+| `/api/find-peers` | Dashboard when "No one to do it with" selected | hobby, skill level | Headline + 3–4 community matches with URLs |
+
+Each client lib (`foundry.ts`, `discover.ts`, `peers.ts`) falls back to a local deterministic generator if Foundry returns `501` or errors — so the UI always renders.
+
+### Env vars (Foundry)
+```
+AZURE_FOUNDRY_ENDPOINT=https://<resource>.services.ai.azure.com
+AZURE_FOUNDRY_API_KEY=<key>
+AZURE_FOUNDRY_DEPLOYMENT=grok-4-1-fast-non-reasoning
+AZURE_FOUNDRY_JSON_MODE=true
+```
+
+---
+
+## Environment & Integrations
+
+Copy `.env.local.example` → `.env.local`. Each block is independent.
+
+### Supabase — anonymous sessions
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `AnalyticsProvider` calls `ensureAnonSession()` on first load (no sign-up).
+- `ready-check` fires `saveSession()` on swipe decision.
+- Enable **Anonymous sign-ins** in Supabase → Authentication.
+- Create the `sessions` table — SQL is in the comment at the top of `lib/supabase.ts`.
+
+### PostHog — analytics
+- `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
+- Events: `onboarding_hobby_selected`, `onboarding_favourite_set`, `onboarding_reason_selected`, `onboarding_swipe_decision`, `dashboard_skill_selected`, `explore_hobby_picked`.
 
 ---
 
@@ -128,45 +188,46 @@ Edit `lib/hobbies.ts` — the onboarding grid adapts automatically:
 ```ts
 export const HOBBIES: Hobby[] = [
   { id: "photography", label: "Photography", image: "/images/camera_select.png" },
-  // add new entry here ↓
-  { id: "gardening", label: "Gardening", image: "/images/gardening_select.png" },
+  // add here ↓
 ];
 ```
 
-Optionally add matching entries to `lib/resources.ts` (books / videos / communities).
-If a hobby has no curated resources, `getResources` falls back to a generic set, so
-nothing breaks.
+For discovery (explore page), also add to `NEW_HOBBIES` in the same file.
+Optionally add resources in `lib/resources.ts` — generic fallback covers anything missing.
 
 ---
 
-## AI Recovery Plan (Foundry)
+## Wrap-up checklist (hackathon demo)
 
-`lib/foundry.ts` exposes:
+### Before you demo
+- [ ] `.env.local` filled with Foundry keys (Grok deployed on Foundry)
+- [ ] `npm run dev` → http://localhost:3000 loads cleanly
+- [ ] Supabase: anonymous sign-ins enabled + `sessions` table created (optional)
+- [ ] PostHog key added (optional — events fire either way)
 
-```ts
-generateRecoveryPlan({ hobby, skillLevel, stopReasons }): Promise<RecoveryPlan>
-```
+### Demo script (≈3 min)
+1. **Home** — show horizontal hobby illustrations, click Get started
+2. **Onboarding** — pick 2 hobbies, choose a favourite, select **"No one to do it with"**
+3. **Swipe yes** → Dashboard → pick skill level → **tap through Wrapped plan slides**
+4. **Scroll down** → show **"people at your level"** Foundry peer cards (because of loneliness reason)
+5. **Go back**, repeat flow but **swipe no** → Explore page with Foundry discovery cards
+6. **Tap a new hobby** (e.g. Gardening) → Dashboard in discovery mode → Wrapped first-time plan
 
-It currently returns a structured, deterministic plan generated locally (tailored to
-the chosen skill level and the reasons the user stopped), with a simulated delay so the
-dashboard can show a "generating" state. To go live, replace the body of
-`generateRecoveryPlan` with a Foundry call that returns the same `RecoveryPlan` shape —
-the rest of the dashboard needs no changes.
+### What to highlight for judges
+- **No login** — anonymous Supabase session, zero friction
+- **Foundry IQ used three ways** — comeback plan, hobby discovery, peer matching
+- **Visual-first design** — Wrapped slides, discovery cards, minimal words
+- **Graceful fallbacks** — app works even without API keys
 
----
-
-## Phase 2 — Remaining Integrations
-
-The dashboard and explore UIs are built. Still open (see `copilot-instruct.md`):
-- Wire the real Microsoft Foundry IQ call in `lib/foundry.ts`
-- PostHog event tracking per step (`posthog-js` is installed)
-- Supabase anonymous sessions to persist journeys (no login required)
+### Optional polish (if time allows)
+- [ ] Deploy to Vercel with env vars in project settings
+- [ ] Record a 60-second demo video
+- [ ] Rotate Azure Foundry key if it was ever committed to git
 
 ---
 
 ## Notes
-- No user accounts required — the flow is designed to respect the "users abandon things
-  easily" principle, so it never blocks on sign-up.
-- The Zustand store is in-memory only; a full browser reload resets onboarding state.
-- The `SwipeCard` outer `<motion.div>` owns the drag physics — keep it when swapping in
-  custom artwork.
+- No user accounts — the flow respects "users abandon things easily."
+- Zustand store is in-memory; a full browser reload resets onboarding state.
+- The `SwipeCard` outer `<motion.div>` owns drag physics — keep it when swapping artwork.
+- `.env.local` is gitignored; never commit real keys to `.env.local.example`.

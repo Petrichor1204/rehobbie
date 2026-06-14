@@ -7,7 +7,7 @@ import { HOBBIES } from "@/lib/hobbies";
 import { useOnboardingStore } from "@/store/onboarding";
 import { HobbyCard } from "@/components/onboarding/HobbyCard";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
-import { Hobby } from "@/types";
+import { capture } from "@/lib/posthog";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -15,6 +15,10 @@ export default function OnboardingPage() {
 
   function handleNext() {
     if (selectedHobbies.length === 0) return;
+    capture("onboarding_hobby_selected", {
+      hobbies: selectedHobbies.map((h) => h.id),
+      count: selectedHobbies.length,
+    });
     if (selectedHobbies.length === 1) {
       useOnboardingStore.getState().setFavoriteHobby(selectedHobbies[0]);
       router.push("/why-stopped");

@@ -5,13 +5,28 @@ import { motion } from "motion/react";
 import { useOnboardingStore } from "@/store/onboarding";
 import { SwipeCard } from "@/components/onboarding/SwipeCard";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
+import { capture } from "@/lib/posthog";
+import { saveSession } from "@/lib/supabase";
 
 export default function ReadyCheckPage() {
   const router = useRouter();
-  const { favoriteHobby, setWantsToResume } = useOnboardingStore();
+  const { selectedHobbies, favoriteHobby, stopReasons, skillLevel, setWantsToResume } =
+    useOnboardingStore();
 
   function handleSwipe(wantsToResume: boolean) {
     setWantsToResume(wantsToResume);
+
+    capture("onboarding_swipe_decision", { wants_to_resume: wantsToResume });
+
+    // Persist the completed journey (fire-and-forget; no-op without Supabase).
+    void saveSession({
+      selected_hobbies: selectedHobbies.map((h) => h.id),
+      favorite_hobby: favoriteHobby?.id ?? null,
+      stop_reasons: stopReasons.map((r) => r.id),
+      wants_to_resume: wantsToResume,
+      skill_level: skillLevel,
+    });
+
     router.push(wantsToResume ? "/dashboard" : "/explore");
   }
 

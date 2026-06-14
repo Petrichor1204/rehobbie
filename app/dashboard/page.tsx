@@ -1,6 +1,5 @@
 "use client";
-// app/dashboard/page.tsx — Phase 2: the "swipe yes" destination.
-// Order: skill selector → AI recovery plan (Foundry) → resources → others like you.
+// app/dashboard/page.tsx — Phase 2: swipe yes (comeback) or explore pick (discovery).
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -9,28 +8,39 @@ import { motion } from "motion/react";
 import { useOnboardingStore } from "@/store/onboarding";
 import { getResources } from "@/lib/resources";
 import { generateRecoveryPlan } from "@/lib/foundry";
+import { findPeers } from "@/lib/peers";
 import { capture } from "@/lib/posthog";
 import { PageFrame } from "@/components/PageFrame";
 import { SkillSelector } from "@/components/dashboard/SkillSelector";
-import { RecoveryPlanCard } from "@/components/dashboard/RecoveryPlanCard";
+import { RecoveryPlanWrapped } from "@/components/dashboard/RecoveryPlanWrapped";
 import { ResourceShelf } from "@/components/dashboard/ResourceShelf";
+import { PeopleAtYourLevel } from "@/components/dashboard/PeopleAtYourLevel";
 import { OthersLikeYou } from "@/components/dashboard/OthersLikeYou";
-import { RecoveryPlan, SkillLevel } from "@/types";
+import { FindPeersResult, RecoveryPlan, SkillLevel } from "@/types";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { favoriteHobby, stopReasons, skillLevel, setSkillLevel } = useOnboardingStore();
+  const {
+    favoriteHobby,
+    stopReasons,
+    skillLevel,
+    setSkillLevel,
+    isDiscovery,
+  } = useOnboardingStore();
 
   const [plan, setPlan] = useState<RecoveryPlan | null>(null);
   const [loading, setLoading] = useState(false);
+  const [peers, setPeers] = useState<FindPeersResult | null>(null);
+  const [peersLoading, setPeersLoading] = useState(false);
   const requestId = useRef(0);
+  const peersRequestId = useRef(0);
 
-  // If someone lands here without finishing the flow, send them home.
+  const wantsCommunity = stopReasons.some((r) => r.id === "no-community");
+
   useEffect(() => {
     if (!favoriteHobby) router.replace("/");
   }, [favoriteHobby, router]);
 
-  // Fire the AI plan whenever the hobby, level, or reasons change.
   useEffect(() => {
     if (!favoriteHobby || !skillLevel) {
       setPlan(null);
@@ -39,16 +49,36 @@ export default function DashboardPage() {
     const id = ++requestId.current;
     setLoading(true);
     setPlan(null);
-    generateRecoveryPlan({ hobby: favoriteHobby, skillLevel, stopReasons }).then(
-      (result) => {
-        // Ignore stale responses (level changed mid-flight).
-        if (id === requestId.current) {
-          setPlan(result);
-          setLoading(false);
-        }
+    generateRecoveryPlan({
+      hobby: favoriteHobby,
+      skillLevel,
+      stopReasons,
+      mode: isDiscovery ? "discovery" : "comeback",
+    }).then((result) => {
+      if (id === requestId.current) {
+        setPlan(result);
+        setLoading(false);
       }
-    );
-  }, [favoriteHobby, skillLevel, stopReasons]);
+    });
+  }, [favoriteHobby, skillLevel, stopReasons, isDiscovery]);
+
+  // Foundry IQ: match them with people at their skill level when loneliness was the blocker.
+  useEffect(() => {
+    if (!favoriteHobby || !skillLevel || !wantsCommunity) {
+      setPeers(null);
+      return;
+    }
+    const id = ++peersRequestId.current;
+    setPeersLoading(true);
+    setPeers(null);
+    findPeers({ hobby: { id: favoriteHobby.id, label: favoriteHobby.label }, skillLevel })
+      .then((result) => {
+        if (id === peersRequestId.current) setPeers(result);
+      })
+      .finally(() => {
+        if (id === peersRequestId.current) setPeersLoading(false);
+      });
+  }, [favoriteHobby, skillLevel, wantsCommunity]);
 
   if (!favoriteHobby) return null;
 
@@ -59,12 +89,12 @@ export default function DashboardPage() {
     capture("dashboard_skill_selected", {
       level,
       hobby: favoriteHobby?.id,
+      discovery: isDiscovery,
     });
   }
 
   return (
     <PageFrame onBack={() => router.push("/")} backLabel="← Home">
-      {/* Header */}
       <header className="flex items-center gap-4 mb-10">
         <div className="relative w-20 h-20 shrink-0">
           <Image
@@ -77,7 +107,9 @@ export default function DashboardPage() {
           />
         </div>
         <div>
-          <p className="font-body text-sm text-rehobbie-muted">welcome back to</p>
+          <p className="font-body text-sm text-rehobbie-muted">
+            {isDiscovery ? "discover" : "welcome back to"}
+          </p>
           <motion.h1
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -90,9 +122,25 @@ export default function DashboardPage() {
 
       <div className="flex flex-col gap-12">
         <SkillSelector value={skillLevel} onChange={handleSkill} />
-        <RecoveryPlanCard plan={plan} loading={loading} hasSkillLevel={!!skillLevel} />
+        <RecoveryPlanWrapped
+          plan={plan}
+          loading={loading}
+          hasSkillLevel={!!skillLevel}
+          hobbyImage={favoriteHobby.image}
+          hobbyLabel={favoriteHobby.label}
+          isDiscovery={isDiscovery}
+        />
+        {wantsCommunity && (
+          <PeopleAtYourLevel
+            result={peers}
+            loading={peersLoading}
+            skillLevel={skillLevel}
+          />
+        )}
         <ResourceShelf resources={resources} />
-        <OthersLikeYou hobbyLabel={favoriteHobby.label} />
+        {!isDiscovery && !wantsCommunity && (
+          <OthersLikeYou hobbyLabel={favoriteHobby.label} />
+        )}
       </div>
     </PageFrame>
   );

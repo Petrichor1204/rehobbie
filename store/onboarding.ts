@@ -13,6 +13,7 @@ type OnboardingStore = {
   stopReasons: StopReason[];
   wantsToResume: boolean | null;
   skillLevel: SkillLevel | null;
+  isDiscovery: boolean;
 
   // Actions
   setSelectedHobbies: (hobbies: Hobby[]) => void;
@@ -22,8 +23,8 @@ type OnboardingStore = {
   setWantsToResume: (val: boolean) => void;
   setSkillLevel: (level: SkillLevel) => void;
   reset: () => void;
-  // Re-enter the flow for a brand-new hobby (used by /explore).
-  restartWithHobby: (hobby: Hobby) => void;
+  // Swipe-no path: pick a brand-new hobby and jump to dashboard.
+  startDiscovery: (hobby: Hobby) => void;
 };
 
 const initialState = {
@@ -32,6 +33,7 @@ const initialState = {
   stopReasons: [],
   wantsToResume: null,
   skillLevel: null,
+  isDiscovery: false,
 };
 
 export const useOnboardingStore = create<OnboardingStore>((set) => ({
@@ -65,10 +67,12 @@ export const useOnboardingStore = create<OnboardingStore>((set) => ({
   setSkillLevel: (level) => set({ skillLevel: level }),
   reset: () => set(initialState),
 
-  restartWithHobby: (hobby) =>
+  startDiscovery: (hobby) =>
     set({
       ...initialState,
       selectedHobbies: [hobby],
       favoriteHobby: hobby,
+      wantsToResume: false,
+      isDiscovery: true,
     }),
 }));

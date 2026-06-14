@@ -83,7 +83,32 @@ const REASON_REMEDY: Record<string, RecoveryStep> = {
   },
 };
 
-function buildPlan({ hobby, skillLevel, stopReasons }: RecoveryPlanInput): RecoveryPlan {
+function buildPlan({ hobby, skillLevel, stopReasons, mode = "comeback" }: RecoveryPlanInput): RecoveryPlan {
+  if (mode === "discovery") {
+    return {
+      headline: `Try ${hobby.label}`,
+      intro: "First time? Perfect. Small steps only.",
+      steps: [
+        {
+          title: "Set up in 5",
+          detail: "Gather the bare minimum. Phone, pencil, pot — whatever it takes.",
+          duration: "5 min",
+        },
+        {
+          title: "One tiny win",
+          detail: `Do the smallest possible ${hobby.label.toLowerCase()} thing. Done beats perfect.`,
+          duration: "15 min",
+        },
+        {
+          title: "Snap & save",
+          detail: "Take one photo of what you made. Proof you started.",
+          duration: "1 min",
+        },
+      ],
+      encouragement: "You just began. That's the whole game.",
+    };
+  }
+
   const framing = SKILL_FRAMING[skillLevel];
 
   const steps: RecoveryStep[] = [SKILL_FIRST_STEP[skillLevel]];
@@ -107,10 +132,10 @@ function buildPlan({ hobby, skillLevel, stopReasons }: RecoveryPlanInput): Recov
       : "";
 
   return {
-    headline: `Your ${hobby.label} comeback`,
-    intro: `A gentle re-entry plan for ${framing}.${reasonText}`,
+    headline: `${hobby.label} comeback`,
+    intro: `Gentle re-entry, ${framing.split(" ")[0]} pace.${reasonText}`,
     steps,
-    encouragement: "You already did the hardest part — deciding to come back. Take it one small step at a time.",
+    encouragement: "Hardest part done — you came back.",
   };
 }
 

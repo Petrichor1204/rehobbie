@@ -1,49 +1,56 @@
-// app/api/recovery-plan/route.ts
-// ─────────────────────────────────────────────────────────────────────────────
-// Microsoft Foundry IQ — server-side recovery-plan generation (Step 9).
-//
-// Runs on the server so the Foundry key never reaches the browser. Uses the
-// Azure OpenAI–compatible chat-completions surface that Azure AI Foundry exposes
-// and asks for a strict JSON object matching the RecoveryPlan shape.
-//
-// Configure via env (see .env.local.example):
-//   AZURE_FOUNDRY_ENDPOINT     e.g. https://my-resource.openai.azure.com
-//   AZURE_FOUNDRY_API_KEY      the resource / deployment key
-//   AZURE_FOUNDRY_DEPLOYMENT   the deployment (model) name, e.g. gpt-4o-mini
-//   AZURE_FOUNDRY_API_VERSION  optional, defaults below
-//
-// When unconfigured it returns 501 and the client falls back to the local
-// deterministic generator in lib/foundry.ts, so the dashboard always works.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { NextResponse } from "next/server";
+import { callAiChat, extractJson } from "@/lib/ai-provider";
 import type { RecoveryPlan, RecoveryPlanInput } from "@/types";
 
 export const runtime = "nodejs";
 
-const SYSTEM_PROMPT = `You are Rehobbie's encouraging comeback coach. A user is returning to a hobby they abandoned. Produce a short, warm, practical "re-entry plan".
+const COMEBACK_PROMPT = `You are Rehobbie's comeback coach. A user is returning to a hobby they abandoned.
 
-Return ONLY a JSON object with EXACTLY this shape:
+Return ONLY JSON:
 {
-  "headline": string,            // ≤6 words, e.g. "Your Photography comeback"
-  "intro": string,               // 1-2 sentences, references why they stopped
-  "steps": [                     // 3-4 steps, ordered, easiest first
-    { "title": string, "detail": string, "duration": string }  // duration like "15 min"
+  "headline": string,     // ≤4 words
+  "intro": string,        // ≤12 words total
+  "steps": [              // 3-4 steps
+    { "title": string, "detail": string, "duration": string }
   ],
-  "encouragement": string        // 1 warm closing sentence
+  "encouragement": string // ≤10 words
 }
-No markdown, no commentary — JSON only.`;
+Keep every string SHORT — this displays on visual swipe cards, not paragraphs. No markdown.`;
+
+const DISCOVERY_PROMPT = `You are Rehobbie's discovery coach. A user is trying a hobby for the FIRST TIME — they've never done it before.
+
+Return ONLY JSON:
+{
+  "headline": string,     // ≤4 words, e.g. "Your Gardening debut"
+  "intro": string,        // ≤12 words — exciting, zero pressure
+  "steps": [              // 3-4 tiny first steps for a complete beginner
+    { "title": string, "detail": string, "duration": string }
+  ],
+  "encouragement": string // ≤10 words
+}
+Keep every string SHORT — visual swipe cards, not paragraphs. No markdown.`;
 
 function buildUserPrompt(input: RecoveryPlanInput): string {
+  const mode = input.mode ?? "comeback";
   const reasons =
     input.stopReasons.length > 0
       ? input.stopReasons.map((r) => r.label).join(", ")
       : "not specified";
+
+  if (mode === "discovery") {
+    return [
+      `Brand-new hobby: ${input.hobby.label}`,
+      `Skill level: ${input.skillLevel}`,
+      `They previously tried other hobbies but want something fresh.`,
+      `Write a fun, low-pressure first-time starter plan.`,
+    ].join("\n");
+  }
+
   return [
     `Hobby: ${input.hobby.label}`,
-    `Current skill level: ${input.skillLevel}`,
-    `Why they stopped before: ${reasons}`,
-    `Write a plan that works around those obstacles and matches the skill level.`,
+    `Skill level: ${input.skillLevel}`,
+    `Why they stopped: ${reasons}`,
+    `Write a comeback plan that works around those obstacles.`,
   ].join("\n");
 }
 
@@ -56,27 +63,16 @@ function isValidPlan(plan: unknown): plan is RecoveryPlan {
     typeof p.encouragement === "string" &&
     Array.isArray(p.steps) &&
     p.steps.length > 0 &&
-    p.steps.every(
+    (p.steps as Record<string, unknown>[]).every(
       (s) =>
-        s &&
-        typeof (s as Record<string, unknown>).title === "string" &&
-        typeof (s as Record<string, unknown>).detail === "string" &&
-        typeof (s as Record<string, unknown>).duration === "string"
+        typeof s.title === "string" &&
+        typeof s.detail === "string" &&
+        typeof s.duration === "string"
     )
   );
 }
 
 export async function POST(req: Request) {
-  const endpoint = process.env.AZURE_FOUNDRY_ENDPOINT;
-  const apiKey = process.env.AZURE_FOUNDRY_API_KEY;
-  const deployment = process.env.AZURE_FOUNDRY_DEPLOYMENT;
-  const apiVersion = process.env.AZURE_FOUNDRY_API_VERSION ?? "2024-08-01-preview";
-
-  if (!endpoint || !apiKey || !deployment) {
-    // Not configured — signal the client to use its local fallback.
-    return NextResponse.json({ error: "foundry_not_configured" }, { status: 501 });
-  }
-
   let input: RecoveryPlanInput;
   try {
     input = (await req.json()) as RecoveryPlanInput;
@@ -88,50 +84,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
 
-  const url = `${endpoint.replace(/\/$/, "")}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
+  const mode = input.mode ?? "comeback";
+  const systemPrompt = mode === "discovery" ? DISCOVERY_PROMPT : COMEBACK_PROMPT;
 
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": apiKey,
-      },
-      body: JSON.stringify({
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: buildUserPrompt(input) },
-        ],
-        temperature: 0.7,
-        max_tokens: 700,
-        response_format: { type: "json_object" },
-      }),
-    });
+  const content = await callAiChat(
+    [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: buildUserPrompt(input) },
+    ],
+    { maxTokens: 650, temperature: 0.75 }
+  );
 
-    if (!res.ok) {
-      const detail = await res.text();
-      console.error("[foundry] upstream error", res.status, detail.slice(0, 500));
-      return NextResponse.json(
-        { error: "foundry_upstream", status: res.status },
-        { status: 502 }
-      );
-    }
-
-    const data = await res.json();
-    const content: string | undefined = data?.choices?.[0]?.message?.content;
-    if (!content) {
-      return NextResponse.json({ error: "foundry_empty" }, { status: 502 });
-    }
-
-    const parsed = JSON.parse(content);
-    if (!isValidPlan(parsed)) {
-      console.error("[foundry] unexpected plan shape", content.slice(0, 500));
-      return NextResponse.json({ error: "foundry_bad_shape" }, { status: 502 });
-    }
-
-    return NextResponse.json(parsed satisfies RecoveryPlan);
-  } catch (err) {
-    console.error("[foundry] request failed", err);
-    return NextResponse.json({ error: "foundry_failed" }, { status: 502 });
+  if (!content) {
+    return NextResponse.json({ error: "ai_not_configured" }, { status: 501 });
   }
+
+  const parsed = extractJson(content);
+  if (!isValidPlan(parsed)) {
+    console.error("[ai] unexpected plan shape", content.slice(0, 500));
+    return NextResponse.json({ error: "ai_bad_shape" }, { status: 502 });
+  }
+
+  return NextResponse.json(parsed satisfies RecoveryPlan);
 }

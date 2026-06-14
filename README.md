@@ -29,7 +29,6 @@ Help users rediscover abandoned creative hobbies through a seamless, no-login on
 ### Integrations
 - **Microsoft Foundry IQ (Grok)** — recovery plans, hobby discovery, peer matching (3 server routes)
 - **Supabase** — anonymous sessions, journey persistence (optional)
-- **PostHog** — per-step analytics + pageviews (optional)
 
 ---
 
@@ -40,7 +39,6 @@ Help users rediscover abandoned creative hobbies through a seamless, no-login on
 - **State:** Zustand
 - **Fonts:** Caveat (sketch) + Nunito, via `next/font/google`
 - **AI:** Microsoft Foundry IQ via `lib/ai-provider.ts` (Grok 4.1 Fast on Azure)
-- **Analytics:** PostHog (`lib/posthog.ts`)
 - **Persistence:** Supabase anonymous sessions (`lib/supabase.ts`)
 
 > Every integration is **optional and env-gated** — the app runs with zero config.
@@ -70,7 +68,7 @@ app/api/
 components/
   SketchBorder.tsx              ← Animated hand-drawn page border (SVG)
   PageFrame.tsx                 ← Scrollable Phase-2 page shell
-  AnalyticsProvider.tsx         ← PostHog init + Supabase anon session + pageviews
+  AnalyticsProvider.tsx         ← Supabase anon session bootstrap
   onboarding/                   ← HobbyCard, ReasonChip, SwipeCard, OnboardingShell
   dashboard/
     SkillSelector.tsx           ← Horizontal skill-level pills
@@ -87,7 +85,6 @@ lib/
   discover.ts                   ← Client → /api/discover-hobbies + local fallback
   peers.ts                      ← Client → /api/find-peers + local fallback
   supabase.ts                   ← Anonymous session + saveSession
-  posthog.ts                    ← Analytics helpers
 
 store/onboarding.ts             ← Zustand store (selections, discovery flag, skill level)
 types/index.ts                  ← All TypeScript types
@@ -105,7 +102,7 @@ npm run dev
 
 Open http://localhost:3000 — click "Get started" to enter the onboarding flow.
 
-The app runs with **no `.env.local`** — AI falls back to local generators, Supabase and PostHog no-op.
+The app runs with **no `.env.local`** — AI falls back to local generators, Supabase no-ops.
 
 ### Styling requirements
 - **Tailwind v3** is pinned with `postcss.config.js` (`tailwindcss` + `autoprefixer`).
@@ -175,10 +172,6 @@ Copy `.env.local.example` → `.env.local`. Each block is independent.
 - Enable **Anonymous sign-ins** in Supabase → Authentication.
 - Create the `sessions` table — SQL is in the comment at the top of `lib/supabase.ts`.
 
-### PostHog — analytics
-- `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
-- Events: `onboarding_hobby_selected`, `onboarding_favourite_set`, `onboarding_reason_selected`, `onboarding_swipe_decision`, `dashboard_skill_selected`, `explore_hobby_picked`.
-
 ---
 
 ## Adding New Hobbies
@@ -203,7 +196,6 @@ Optionally add resources in `lib/resources.ts` — generic fallback covers anyth
 - [ ] `.env.local` filled with Foundry keys (Grok deployed on Foundry)
 - [ ] `npm run dev` → http://localhost:3000 loads cleanly
 - [ ] Supabase: anonymous sign-ins enabled + `sessions` table created (optional)
-- [ ] PostHog key added (optional — events fire either way)
 
 ### Demo script (≈3 min)
 1. **Home** — show horizontal hobby illustrations, click Get started

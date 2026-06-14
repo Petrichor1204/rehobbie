@@ -5,7 +5,6 @@ import { motion } from "motion/react";
 import { useOnboardingStore } from "@/store/onboarding";
 import { SwipeCard } from "@/components/onboarding/SwipeCard";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
-import { capture } from "@/lib/posthog";
 import { saveSession } from "@/lib/supabase";
 
 export default function ReadyCheckPage() {
@@ -15,8 +14,6 @@ export default function ReadyCheckPage() {
 
   function handleSwipe(wantsToResume: boolean) {
     setWantsToResume(wantsToResume);
-
-    capture("onboarding_swipe_decision", { wants_to_resume: wantsToResume });
 
     // Persist the completed journey (fire-and-forget; no-op without Supabase).
     void saveSession({

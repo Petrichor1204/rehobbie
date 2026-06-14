@@ -9,7 +9,6 @@ import { useOnboardingStore } from "@/store/onboarding";
 import { getResources } from "@/lib/resources";
 import { generateRecoveryPlan } from "@/lib/foundry";
 import { findPeers } from "@/lib/peers";
-import { capture } from "@/lib/posthog";
 import { PageFrame } from "@/components/PageFrame";
 import { SkillSelector } from "@/components/dashboard/SkillSelector";
 import { RecoveryPlanWrapped } from "@/components/dashboard/RecoveryPlanWrapped";
@@ -86,11 +85,6 @@ export default function DashboardPage() {
 
   function handleSkill(level: SkillLevel) {
     setSkillLevel(level);
-    capture("dashboard_skill_selected", {
-      level,
-      hobby: favoriteHobby?.id,
-      discovery: isDiscovery,
-    });
   }
 
   return (

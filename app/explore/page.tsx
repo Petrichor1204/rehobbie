@@ -8,7 +8,6 @@ import { HOBBIES, NEW_HOBBIES } from "@/lib/hobbies";
 import { discoverHobbies } from "@/lib/discover";
 import { useOnboardingStore } from "@/store/onboarding";
 import { PageFrame } from "@/components/PageFrame";
-import { capture } from "@/lib/posthog";
 import { DiscoverHobbiesResult, Hobby } from "@/types";
 
 const ALL_CATALOG: Hobby[] = [...HOBBIES, ...NEW_HOBBIES];
@@ -115,7 +114,6 @@ export default function ExplorePage() {
   }, []);
 
   function handlePick(hobby: Hobby) {
-    capture("explore_hobby_picked", { hobby: hobby.id });
     startDiscovery(hobby);
     router.push("/dashboard");
   }

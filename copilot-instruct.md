@@ -143,33 +143,7 @@ async function handleSwipe(wantsToResume: boolean) {
 
 ---
 
-## Step 7 — Connect PostHog
-
-Install: `npm install posthog-js`
-
-In `lib/posthog.ts`:
-```ts
-import posthog from "posthog-js";
-
-export function initPostHog() {
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://app.posthog.com",
-    capture_pageview: false, // manual for SPA
-  });
-}
-```
-
-Key events to track (add these to each step's "Next" handler):
-```ts
-posthog.capture("onboarding_hobby_selected", { hobbies: selectedHobbies.map(h => h.id) });
-posthog.capture("onboarding_favourite_set",  { hobby: favoriteHobby?.id });
-posthog.capture("onboarding_reason_selected", { reasons: stopReasons.map(r => r.id) });
-posthog.capture("onboarding_swipe_decision",  { wants_to_resume: wantsToResume });
-```
-
----
-
-## Step 8 — Build the Dashboard (Phase 2)
+## Step 7 — Build the Dashboard (Phase 2)
 
 `app/dashboard/page.tsx` is the post-yes destination. Build it with:
 
@@ -186,7 +160,7 @@ posthog.capture("onboarding_swipe_decision",  { wants_to_resume: wantsToResume }
 
 ---
 
-## Step 9 — Add FoundryIQ / Copilot AI features
+## Step 8 — Add FoundryIQ / Copilot AI features
 
 FoundryIQ (Microsoft intelligence) can be used to:
 - Generate personalised resource recommendations based on hobby + skill level
@@ -217,7 +191,6 @@ components/onboarding/
 lib/
   hobbies.ts                 ← add new hobbies + reasons here
   supabase.ts                ← TODO: init client
-  posthog.ts                 ← TODO: init analytics
 
 store/
   onboarding.ts              ← Zustand store (all step state)
@@ -232,7 +205,7 @@ types/
 
 - [ ] `npm install motion zustand`
 - [ ] Images added to `/public/images/`
-- [ ] `.env.local` created with Supabase + PostHog keys
+- [ ] `.env.local` created with Supabase keys
 - [ ] `npm run dev` → open http://localhost:3000
 - [ ] Click through all 4 onboarding steps end-to-end
 - [ ] Test swipe left and swipe right on `/ready-check`

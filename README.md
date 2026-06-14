@@ -162,6 +162,91 @@ AZURE_FOUNDRY_JSON_MODE=true
 
 ---
 
+## Architecture
+
+Rehobbie is a **Next.js 16** app on **Vercel**. All Microsoft Foundry calls run **server-side** so API keys never reach the browser. Three domain-specific AI surfaces share one provider (`lib/ai-provider.ts`) and fall back to local generators when Foundry is unavailable.
+
+### Runtime diagram
+
+```mermaid
+flowchart TB
+  subgraph User["👤 User (Browser)"]
+    UI["React UI\nZustand store"]
+  end
+
+  subgraph Vercel["☁️ Vercel — Next.js 16 App Router"]
+    Pages["Pages\n/ · /onboarding · /ready-check\n/dashboard · /explore"]
+    ClientLibs["Client libs\nfoundry · discover · peers"]
+    API["Server API routes\n/api/recovery-plan\n/api/discover-hobbies\n/api/find-peers"]
+    Provider["lib/ai-provider.ts\nresolveAiProvider · callAiChat · extractJson"]
+    Fallback["Local fallbacks\nDeterministic plans & catalogs"]
+  end
+
+  subgraph Azure["🔷 Microsoft Azure"]
+    Foundry["Azure AI Foundry\nGrok 4.1 Fast Non-Reasoning\nservices.ai.azure.com/models"]
+  end
+
+  subgraph Optional["Optional persistence"]
+    Supabase["Supabase\nAnonymous sessions · sessions table"]
+  end
+
+  UI --> Pages
+  Pages --> ClientLibs
+  ClientLibs -->|"POST JSON"| API
+  ClientLibs -.->|"501 / error"| Fallback
+  API --> Provider
+  Provider -->|"chat/completions\nJSON mode"| Foundry
+  Provider -.->|"no keys"| Fallback
+  Pages -->|"saveSession on swipe"| Supabase
+  Pages -->|"ensureAnonSession"| Supabase
+
+  style Foundry fill:#0078d4,color:#fff
+  style Azure fill:#e8f4fd
+  style Vercel fill:#f5f5f5
+```
+
+### Swipe decision → AI path
+
+```mermaid
+flowchart LR
+  A["Onboarding\nhobbies · reasons"] --> B{"Swipe\nready-check"}
+  B -->|"Yes"| C["/dashboard"]
+  B -->|"No"| D["/explore"]
+
+  C --> E["Skill level"]
+  E --> F["/api/recovery-plan\nComeback coach"]
+  C --> G{"Stop reason:\nno community?"}
+  G -->|"Yes"| H["/api/find-peers\nCommunity matcher"]
+  G -->|"No"| I["Resources +\nsocial proof"]
+
+  D --> J["/api/discover-hobbies\nDiscovery curator"]
+  J --> K["Pick new hobby"]
+  K --> C
+  F --> L["RecoveryPlanWrapped\nUI slides"]
+  H --> M["PeopleAtYourLevel\ncards"]
+  J --> N["Discovery cards"]
+
+  F & H & J --> Foundry[("Microsoft Foundry\n(Azure)")]
+```
+
+### Microsoft stack mapping
+
+| Technology | Role in Rehobbie |
+|---|---|
+| **Microsoft Foundry** | **Runtime AI** — three prompt-specialized surfaces (recovery plan, hobby discovery, peer matching) call **Grok 4.1 Fast** via the Foundry `services.ai.azure.com/models` endpoint. Shared caller: `lib/ai-provider.ts`. |
+| **Azure services** | Foundry resource + deployment live on **Azure AI**; secrets stored in **Vercel** env vars (`AZURE_FOUNDRY_*`). App hosted at [rehobbie.vercel.app](https://rehobbie.vercel.app). |
+| **Agent-style orchestration** | Each API route acts as a **domain agent** with its own system prompt and JSON schema — comeback coach, discovery curator, community matcher — orchestrated by the Next.js server layer (same pattern Agent Framework encourages, implemented as lightweight route handlers). |
+| **GitHub Copilot** | **Build-time** — used to scaffold pages, plan Foundry integration phases, explain code, and generate unit tests (`copilot-instruct.md`, README build notes). |
+| **Azure MCP** | **Build-time** — Azure MCP tooling supports Copilot/IDE access to Foundry endpoints, deployment names, and Azure resource context while wiring `ai-provider.ts` and env configuration. |
+
+### Security & resilience
+
+- **Keys server-only** — browser never sees `AZURE_FOUNDRY_API_KEY`.
+- **Graceful degradation** — client libs fall back to deterministic local generators if Foundry returns `501` or malformed JSON.
+- **Optional Supabase** — anonymous sign-in + `saveSession()` on swipe; no-op without keys.
+
+---
+
 ## Environment & Integrations
 
 Copy `.env.local.example` → `.env.local`. Each block is independent.

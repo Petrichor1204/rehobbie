@@ -4,43 +4,32 @@ import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { SketchBorder } from "@/components/SketchBorder";
+import { HobbyKeycap } from "@/components/home/HobbyKeycap";
 
-// Horizontal band across the centre of the page — orderly, gently waved.
+// Horizontal band — staggered lift keeps a gentle wave while each keycap floats in place.
 const HOBBIES = [
-  { id: "gardening", src: "/images/gardening.png",   alt: "Gardening",   size: 150, lift: 0,  delay: 0.0 },
-  { id: "camera",    src: "/images/photography.png", alt: "Photography", size: 140, lift: 36, delay: 0.5 },
-  { id: "guitar",    src: "/images/music.png",       alt: "Music",       size: 160, lift: 0,  delay: 0.2 },
-  { id: "cooking",   src: "/images/cooking.png",     alt: "Cooking",     size: 135, lift: 40, delay: 0.7 },
-  { id: "palette",   src: "/images/painting.png",    alt: "Painting",    size: 140, lift: 0,  delay: 0.3 },
-  { id: "novel",     src: "/images/reading.png",     alt: "Reading",     size: 150, lift: 36, delay: 0.6 },
-  { id: "singer",    src: "/images/singing.png",     alt: "Singing",     size: 165, lift: 0,  delay: 0.4 },
-  { id: "karate",    src: "/images/karate.png",      alt: "Karate",      size: 150, lift: 40, delay: 0.8 },
+  { id: "gardening",  src: "/images/gardening.png",   label: "Gardening",   lift: 0,  delay: 0.0, variant: "cream" as const },
+  { id: "camera",     src: "/images/photography.png", label: "Photography", lift: 28, delay: 0.5, variant: "paper" as const },
+  { id: "guitar",     src: "/images/music.png",       label: "Music",       lift: 0,  delay: 0.2, variant: "cream" as const },
+  { id: "cooking",    src: "/images/cooking.png",     label: "Cooking",     lift: 32, delay: 0.7, variant: "paper" as const },
+  { id: "palette",    src: "/images/painting.png",    label: "Painting",    lift: 0,  delay: 0.3, variant: "cream" as const },
+  { id: "novel",      src: "/images/reading.png",     label: "Reading",     lift: 28, delay: 0.6, variant: "paper" as const },
+  { id: "singer",     src: "/images/singing.png",     label: "Singing",     lift: 0,  delay: 0.4, variant: "cream" as const },
+  { id: "karate",     src: "/images/karate.png",      label: "Karate",      lift: 32, delay: 0.8, variant: "paper" as const },
 ];
-
-function floatVariants(delay: number): Record<string, any> {
-  return {
-    initial: { y: "0%" },
-    animate: {
-      y: ["0%", "-5%", "0%"],
-      transition: {
-        duration: 4 + delay * 0.4,
-        repeat: Infinity,
-        ease: [0.42, 0, 0.58, 1] as const,
-        delay,
-      },
-    },
-  };
-}
 
 export default function HomePage() {
   const router = useRouter();
+
+  function startOnboarding() {
+    router.push("/onboarding");
+  }
 
   return (
     <main className="relative w-full min-h-screen overflow-hidden bg-[#F4F1EA]">
       <SketchBorder />
 
       <div className="relative z-10 min-h-screen flex flex-col items-center px-6 py-10">
-        {/* REHOBBIE — top center */}
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -56,39 +45,29 @@ export default function HomePage() {
           />
         </motion.div>
 
-        {/* Centre block: tagline → horizontal hobby band → get started */}
         <div className="flex-1 flex flex-col items-center justify-center gap-10 w-full">
           <p className="font-sketch text-2xl md:text-3xl text-rehobbie-ink/80 text-center leading-snug max-w-sm">
             rediscover the hobbies you used to love
           </p>
 
-          <div className="flex flex-wrap items-end justify-center gap-x-7 md:gap-x-9 gap-y-12 max-w-5xl w-full">
+          <div className="flex flex-wrap items-end justify-center gap-x-5 md:gap-x-7 gap-y-10 max-w-5xl w-full px-2">
             {HOBBIES.map((hobby) => (
-              <div key={hobby.id} className="relative" style={{ marginBottom: hobby.lift }}>
-                <motion.div
-                  variants={floatVariants(hobby.delay)}
-                  initial="initial"
-                  animate="animate"
-                >
-                  <Image
-                    src={hobby.src}
-                    alt={hobby.alt}
-                    width={hobby.size}
-                    height={hobby.size}
-                    className="relative z-10 h-auto w-[clamp(86px,9.5vw,128px)] drop-shadow-sm"
-                    draggable={false}
-                    priority={hobby.id === "gardening" || hobby.id === "guitar"}
-                  />
-                </motion.div>
-                {/* Ground shadow at the bottom of each image */}
-                <div className="absolute left-1/2 -translate-x-1/2 -bottom-3 z-0 h-3 w-[60%] rounded-[50%] bg-rehobbie-ink/25 blur-[6px]" />
-              </div>
+              <HobbyKeycap
+                key={hobby.id}
+                src={hobby.src}
+                alt={hobby.label}
+                label={hobby.label}
+                lift={hobby.lift}
+                delay={hobby.delay}
+                variant={hobby.variant}
+                onClick={startOnboarding}
+              />
             ))}
           </div>
 
           <motion.button
             type="button"
-            onClick={() => router.push("/onboarding")}
+            onClick={startOnboarding}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: "easeOut", delay: 0.3 }}

@@ -223,5 +223,29 @@ npm test:watch # run in watch mode
   - Tests were run locally and the suite passed (3 test files, 6 tests).
 
 ````
+
+---
+
+## How I built this
+
+- Started by planning the flow manually, then using chatgpt to plan the tools to use and the file structure.
+- Used copilot to install dependencies and create scaffolds of files.
+- Used copilot to plan the phases and the implementation.
+- Started with frontend — wanted a unique design and a more human feel for the UI.
+- Used Figma to lay out pages and draw elements out.
+- Used Gemini Nano Banana to clean up drawings and add color.
+- Cut images out with Mac Preview and used them as components in the pages.
+- Used Claude to bring Figma designs to life and iterate on design planning.
+- Used copilot to plan next steps and explain code and progress so far.
+- Used copilot to plan use of Foundry IQ and integration of Supabase.
+- Used copilot for creating unit tests.
+
+### FoundryIQ
+
+- Uses `grok-4-1-fast-non-reasoning` for the AI surfaces.
+- Creates a rediscovery plan based on experience level and factors that led to abandonment.
+- If the factors include “didn’t find others to do it with”, it suggests communities to join based on experience level.
+- Helps you discover new hobbies by creating a plan for the one you select.
+
 ## Live link
 https://rehobbie.vercel.app/

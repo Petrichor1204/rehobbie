@@ -7,7 +7,6 @@ import { STOP_REASONS } from "@/lib/hobbies";
 import { useOnboardingStore } from "@/store/onboarding";
 import { ReasonChip } from "@/components/onboarding/ReasonChip";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
-import { capture } from "@/lib/posthog";
 
 export default function WhyStoppedPage() {
   const router = useRouter();
@@ -16,9 +15,6 @@ export default function WhyStoppedPage() {
   const hasSelection = stopReasons.length > 0;
 
   function handleNext() {
-    capture("onboarding_reason_selected", {
-      reasons: stopReasons.map((r) => r.id),
-    });
     router.push("/ready-check");
   }
 

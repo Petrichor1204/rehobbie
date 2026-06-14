@@ -1,3 +1,4 @@
+````markdown
 # Rehobbie — Hobby Recovery App
 
 ## Purpose
@@ -29,7 +30,6 @@ Help users rediscover abandoned creative hobbies through a seamless, no-login on
 ### Integrations
 - **Microsoft Foundry IQ (Grok)** — recovery plans, hobby discovery, peer matching (3 server routes)
 - **Supabase** — anonymous sessions, journey persistence (optional)
-- **PostHog** — per-step analytics + pageviews (optional)
 
 ---
 
@@ -40,7 +40,6 @@ Help users rediscover abandoned creative hobbies through a seamless, no-login on
 - **State:** Zustand
 - **Fonts:** Caveat (sketch) + Nunito, via `next/font/google`
 - **AI:** Microsoft Foundry IQ via `lib/ai-provider.ts` (Grok 4.1 Fast on Azure)
-- **Analytics:** PostHog (`lib/posthog.ts`)
 - **Persistence:** Supabase anonymous sessions (`lib/supabase.ts`)
 
 > Every integration is **optional and env-gated** — the app runs with zero config.
@@ -70,7 +69,7 @@ app/api/
 components/
   SketchBorder.tsx              ← Animated hand-drawn page border (SVG)
   PageFrame.tsx                 ← Scrollable Phase-2 page shell
-  AnalyticsProvider.tsx         ← PostHog init + Supabase anon session + pageviews
+  AnalyticsProvider.tsx         ← Supabase anon session bootstrap
   onboarding/                   ← HobbyCard, ReasonChip, SwipeCard, OnboardingShell
   dashboard/
     SkillSelector.tsx           ← Horizontal skill-level pills
@@ -87,7 +86,6 @@ lib/
   discover.ts                   ← Client → /api/discover-hobbies + local fallback
   peers.ts                      ← Client → /api/find-peers + local fallback
   supabase.ts                   ← Anonymous session + saveSession
-  posthog.ts                    ← Analytics helpers
 
 store/onboarding.ts             ← Zustand store (selections, discovery flag, skill level)
 types/index.ts                  ← All TypeScript types
@@ -105,7 +103,7 @@ npm run dev
 
 Open http://localhost:3000 — click "Get started" to enter the onboarding flow.
 
-The app runs with **no `.env.local`** — AI falls back to local generators, Supabase and PostHog no-op.
+The app runs with **no `.env.local`** — AI falls back to local generators, Supabase no-ops.
 
 ### Styling requirements
 - **Tailwind v3** is pinned with `postcss.config.js` (`tailwindcss` + `autoprefixer`).
@@ -175,10 +173,6 @@ Copy `.env.local.example` → `.env.local`. Each block is independent.
 - Enable **Anonymous sign-ins** in Supabase → Authentication.
 - Create the `sessions` table — SQL is in the comment at the top of `lib/supabase.ts`.
 
-### PostHog — analytics
-- `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
-- Events: `onboarding_hobby_selected`, `onboarding_favourite_set`, `onboarding_reason_selected`, `onboarding_swipe_decision`, `dashboard_skill_selected`, `explore_hobby_picked`.
-
 ---
 
 ## Adding New Hobbies
@@ -197,37 +191,73 @@ Optionally add resources in `lib/resources.ts` — generic fallback covers anyth
 
 ---
 
-## Wrap-up checklist (hackathon demo)
-
-### Before you demo
-- [ ] `.env.local` filled with Foundry keys (Grok deployed on Foundry)
-- [ ] `npm run dev` → http://localhost:3000 loads cleanly
-- [ ] Supabase: anonymous sign-ins enabled + `sessions` table created (optional)
-- [ ] PostHog key added (optional — events fire either way)
-
-### Demo script (≈3 min)
-1. **Home** — show horizontal hobby illustrations, click Get started
-2. **Onboarding** — pick 2 hobbies, choose a favourite, select **"No one to do it with"**
-3. **Swipe yes** → Dashboard → pick skill level → **tap through Wrapped plan slides**
-4. **Scroll down** → show **"people at your level"** Foundry peer cards (because of loneliness reason)
-5. **Go back**, repeat flow but **swipe no** → Explore page with Foundry discovery cards
-6. **Tap a new hobby** (e.g. Gardening) → Dashboard in discovery mode → Wrapped first-time plan
-
-### What to highlight for judges
-- **No login** — anonymous Supabase session, zero friction
-- **Foundry IQ used three ways** — comeback plan, hobby discovery, peer matching
-- **Visual-first design** — Wrapped slides, discovery cards, minimal words
-- **Graceful fallbacks** — app works even without API keys
-
-### Optional polish (if time allows)
-- [ ] Deploy to Vercel with env vars in project settings
-- [ ] Record a 60-second demo video
-- [ ] Rotate Azure Foundry key if it was ever committed to git
-
----
 
 ## Notes
 - No user accounts — the flow respects "users abandon things easily."
 - Zustand store is in-memory; a full browser reload resets onboarding state.
 - The `SwipeCard` outer `<motion.div>` owns drag physics — keep it when swapping artwork.
 - `.env.local` is gitignored; never commit real keys to `.env.local.example`.
+
+---
+
+## Testing
+
+**Stack:** Vitest + jsdom, `@testing-library/react`, `@testing-library/jest-dom`, MSW. Shared fixtures live in `test/helpers/fixtures.ts`.
+
+**Run locally:**
+
+```bash
+npm run test:run    # single run (CI-friendly)
+npm test            # same as test:run
+npm run test:watch  # watch mode
+npm run typecheck   # tsc — app code only (test/ excluded)
+npm run lint        # ESLint flat config
+```
+
+**Current suite:** 11 files, 39 tests — all passing (~2s). No live Foundry keys required; AI and network calls are mocked.
+
+| Area | File | What it covers |
+|---|---|---|
+| **Store** | `test/store/onboarding.spec.ts` | `toggleHobby`, swipe yes/no state, `startDiscovery`, skill/reason toggles, `reset` |
+| **API routes** | `test/api/recovery-plan.spec.ts` | 400/501/502 errors + valid AI plan response |
+| | `test/api/discover-hobbies.spec.ts` | Empty catalog, AI off, catalog-id filtering, all-filtered 502 |
+| | `test/api/find-peers.spec.ts` | Validation, 501, happy path, malformed AI payload |
+| **Client libs** | `test/lib/foundry.spec.ts` | API success, comeback fallback, discovery fallback |
+| | `test/lib/discover.spec.ts` | Invalid API payload fallback, valid API response |
+| | `test/lib/peers.spec.ts` | API success, resource-based community fallback |
+| **AI provider** | `test/lib/ai-provider.spec.ts` | GitHub Models resolution + upstream calls (MSW) |
+| | `test/lib/ai-provider-foundry.spec.ts` | Foundry / Azure OpenAI URL resolution, provider priority |
+| | `test/lib/extract-json.spec.ts` | Raw JSON, fenced blocks, embedded JSON parsing |
+| **Pages** | `test/pages/ready-check.spec.tsx` | Render, swipe yes → `/dashboard` + `saveSession`, swipe no → `/explore` |
+
+**Config:** `vitest.config.ts` (jsdom, `@/*` alias, globals) · `test/setup.ts` (MSW server lifecycle)
+
+**Not covered yet:** dashboard/explore/onboarding page UI, individual components (`RecoveryPlanWrapped`, `HobbyKeycap`), E2E browser flows.
+
+````
+
+---
+
+## How I built this
+
+- Started by planning the flow manually, then using chatgpt to plan the tools to use and the file structure.
+- Used copilot to install dependencies and create scaffolds of files.
+- Used copilot to plan the phases and the implementation.
+- Started with frontend — wanted a unique design and a more human feel for the UI.
+- Used Figma to lay out pages and draw elements out.
+- Used Gemini Nano Banana to clean up drawings and add color.
+- Cut images out with Mac Preview and used them as components in the pages.
+- Used Claude to bring Figma designs to life and iterate on design planning.
+- Used copilot to plan next steps and explain code and progress so far.
+- Used copilot to plan use of Foundry IQ and integration of Supabase.
+- Used copilot for creating unit tests.
+
+### FoundryIQ
+
+- Uses `grok-4-1-fast-non-reasoning` for the AI surfaces.
+- Creates a rediscovery plan based on experience level and factors that led to abandonment.
+- If the factors include “didn’t find others to do it with”, it suggests communities to join based on experience level.
+- Helps you discover new hobbies by creating a plan for the one you select.
+
+## Live link
+https://rehobbie.vercel.app/

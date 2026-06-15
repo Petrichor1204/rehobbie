@@ -164,9 +164,49 @@ AZURE_FOUNDRY_JSON_MODE=true
 
 ## Architecture
 
-Rehobbie is a **Next.js 16** app on **Vercel**. All Microsoft Foundry calls run **server-side** so API keys never reach the browser. Three domain-specific AI surfaces share one provider (`lib/ai-provider.ts`) and fall back to local generators when Foundry is unavailable.
+Rehobbie is a **Next.js 16** app on **Vercel**. At runtime, **Microsoft Foundry IQ** powers all AI features through **Grok 4.1 Fast Non-Reasoning** (`grok-4-1-fast-non-reasoning`). Calls run **server-side** via `lib/ai-provider.ts` so keys never reach the browser. Three Foundry IQ surfaces share one provider and fall back to local generators when unavailable.
 
-### Runtime diagram
+### How we built it — GitHub Copilot & design workflow
+
+```mermaid
+flowchart TB
+  subgraph Plan["1 · Plan"]
+    Manual["Manual flow planning"]
+    ChatGPT["ChatGPT\ntools + file structure"]
+  end
+
+  subgraph Copilot["2 · GitHub Copilot — primary build assistant"]
+    C1["Install dependencies\n+ scaffold files"]
+    C2["Plan phases\n+ implementation steps"]
+    C3["Plan Foundry IQ integration\n+ Supabase wiring"]
+    C4["Explain code\n+ track progress"]
+    C5["Create unit tests\n(Vitest suite)"]
+  end
+
+  subgraph Design["3 · Design & UI"]
+    Figma["Figma\npage layouts + sketches"]
+    Gemini["Gemini Nano Banana\nclean up drawings + color"]
+    Preview["Mac Preview\ncut out image assets"]
+    Claude["Claude\nbring Figma designs to code"]
+  end
+
+  subgraph Ship["4 · Deploy"]
+    App["Rehobbie app\nNext.js on Vercel"]
+  end
+
+  Manual --> ChatGPT
+  ChatGPT --> Copilot
+  C1 --> C2 --> C3 --> C4 --> C5
+  Copilot --> Design
+  Figma --> Gemini --> Preview --> Claude
+  Design --> App
+  Copilot --> App
+
+  style Copilot fill:#24292f,color:#fff
+  style C3 fill:#0078d4,color:#fff
+```
+
+### Runtime diagram — Foundry IQ + Grok
 
 ```mermaid
 flowchart TB
@@ -182,8 +222,8 @@ flowchart TB
     Fallback["Local fallbacks\nDeterministic plans & catalogs"]
   end
 
-  subgraph Azure["🔷 Microsoft Azure"]
-    Foundry["Azure AI Foundry\nGrok 4.1 Fast Non-Reasoning\nservices.ai.azure.com/models"]
+  subgraph FoundryIQ["🔷 Microsoft Foundry IQ (Azure)"]
+    Grok["Model: grok-4-1-fast-non-reasoning\nEndpoint: services.ai.azure.com/models\nJSON-mode chat completions"]
   end
 
   subgraph Optional["Optional persistence"]
@@ -195,17 +235,52 @@ flowchart TB
   ClientLibs -->|"POST JSON"| API
   ClientLibs -.->|"501 / error"| Fallback
   API --> Provider
-  Provider -->|"chat/completions\nJSON mode"| Foundry
+  Provider -->|"Foundry IQ API call"| Grok
   Provider -.->|"no keys"| Fallback
   Pages -->|"saveSession on swipe"| Supabase
   Pages -->|"ensureAnonSession"| Supabase
 
-  style Foundry fill:#0078d4,color:#fff
-  style Azure fill:#e8f4fd
+  style FoundryIQ fill:#0078d4,color:#fff
+  style Grok fill:#106ebe,color:#fff
   style Vercel fill:#f5f5f5
 ```
 
-### Swipe decision → AI path
+### Foundry IQ — three AI surfaces (Grok)
+
+```mermaid
+flowchart LR
+  subgraph Inputs["User context"]
+    Hobby["Hobby + skill level"]
+    Reasons["Stop reasons"]
+    Catalog["Untried hobbies"]
+  end
+
+  subgraph FoundryIQ["Microsoft Foundry IQ\ngrok-4-1-fast-non-reasoning"]
+    P1["① Recovery plan\nRediscovery plan tailored to\nexperience level + why they stopped"]
+    P2["② Community matcher\nIf 'no one to do it with' →\ncommunities at their skill level"]
+    P3["③ Hobby discovery\nSuggest brand-new hobbies +\nfirst-time starter plan"]
+  end
+
+  subgraph Output["UI"]
+    Wrapped["RecoveryPlanWrapped\n tap-through slides"]
+    Peers["PeopleAtYourLevel cards"]
+    Explore["Explore discovery cards"]
+  end
+
+  Hobby --> P1
+  Reasons --> P1
+  Reasons --> P2
+  Hobby --> P2
+  Catalog --> P3
+  Reasons --> P3
+
+  P1 --> Wrapped
+  P2 --> Peers
+  P3 --> Explore
+  P3 --> Wrapped
+```
+
+### Swipe decision → Foundry IQ path
 
 ```mermaid
 flowchart LR
@@ -214,35 +289,35 @@ flowchart LR
   B -->|"No"| D["/explore"]
 
   C --> E["Skill level"]
-  E --> F["/api/recovery-plan\nComeback coach"]
+  E --> F["/api/recovery-plan\nFoundry IQ · recovery plan"]
   C --> G{"Stop reason:\nno community?"}
-  G -->|"Yes"| H["/api/find-peers\nCommunity matcher"]
+  G -->|"Yes"| H["/api/find-peers\nFoundry IQ · communities"]
   G -->|"No"| I["Resources +\nsocial proof"]
 
-  D --> J["/api/discover-hobbies\nDiscovery curator"]
+  D --> J["/api/discover-hobbies\nFoundry IQ · new hobbies"]
   J --> K["Pick new hobby"]
   K --> C
-  F --> L["RecoveryPlanWrapped\nUI slides"]
-  H --> M["PeopleAtYourLevel\ncards"]
+  F --> L["RecoveryPlanWrapped"]
+  H --> M["PeopleAtYourLevel"]
   J --> N["Discovery cards"]
 
-  F & H & J --> Foundry[("Microsoft Foundry\n(Azure)")]
+  F & H & J --> IQ[("Foundry IQ\nGrok 4.1 Fast")]
 ```
 
 ### Microsoft stack mapping
 
 | Technology | Role in Rehobbie |
 |---|---|
-| **Microsoft Foundry** | **Runtime AI** — three prompt-specialized surfaces (recovery plan, hobby discovery, peer matching) call **Grok 4.1 Fast** via the Foundry `services.ai.azure.com/models` endpoint. Shared caller: `lib/ai-provider.ts`. |
-| **Azure services** | Foundry resource + deployment live on **Azure AI**; secrets stored in **Vercel** env vars (`AZURE_FOUNDRY_*`). App hosted at [rehobbie.vercel.app](https://rehobbie.vercel.app). |
-| **Agent-style orchestration** | Each API route acts as a **domain agent** with its own system prompt and JSON schema — comeback coach, discovery curator, community matcher — orchestrated by the Next.js server layer (same pattern Agent Framework encourages, implemented as lightweight route handlers). |
-| **GitHub Copilot** | **Build-time** — used to scaffold pages, plan Foundry integration phases, explain code, and generate unit tests (`copilot-instruct.md`, README build notes). |
-| **Azure MCP** | **Build-time** — Azure MCP tooling supports Copilot/IDE access to Foundry endpoints, deployment names, and Azure resource context while wiring `ai-provider.ts` and env configuration. |
+| **Microsoft Foundry IQ** | **Runtime AI** — all intelligence runs through Foundry IQ using **Grok 4.1 Fast Non-Reasoning** (`grok-4-1-fast-non-reasoning`). Three surfaces: (1) personalised rediscovery plan by skill level + abandonment factors, (2) community matching when loneliness was the blocker, (3) brand-new hobby discovery + first-time starter plan. Shared server caller: `lib/ai-provider.ts`. |
+| **Azure services** | Foundry IQ resource hosted on **Azure AI** (`services.ai.azure.com`); deployment secrets in **Vercel** env vars. Live at [rehobbie.vercel.app](https://rehobbie.vercel.app). |
+| **GitHub Copilot** | **Build-time co-developer** — installed dependencies and scaffolded files; planned implementation phases; planned Foundry IQ + Supabase integration; explained code and tracked progress; generated the Vitest unit test suite. |
+| **Agent-style orchestration** | Each API route is a domain-specialised handler (comeback coach, discovery curator, community matcher) with its own system prompt and JSON schema — orchestrated by the Next.js server layer. |
+| **Design toolchain** | Figma (layouts) → Gemini Nano Banana (illustrations) → Mac Preview (asset cutouts) → Claude (design-to-code iteration). Copilot handled backend/integration scaffolding alongside this. |
 
 ### Security & resilience
 
 - **Keys server-only** — browser never sees `AZURE_FOUNDRY_API_KEY`.
-- **Graceful degradation** — client libs fall back to deterministic local generators if Foundry returns `501` or malformed JSON.
+- **Graceful degradation** — client libs fall back to deterministic local generators if Foundry IQ returns `501` or malformed JSON.
 - **Optional Supabase** — anonymous sign-in + `saveSession()` on swipe; no-op without keys.
 
 ---

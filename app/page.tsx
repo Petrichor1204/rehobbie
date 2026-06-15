@@ -1,112 +1,92 @@
 "use client";
-// app/page.tsx — HOME PAGE
-// ─────────────────────────────────────────────────────────────────────────────
-// Matches Figma "Home" frame:
-//   - "REHOBBIE" wordmark top-right
-//   - Hobby illustrations floating around the screen with gentle motion
-//   - "Get started" button in the centre-bottom area
-//
-// MOTION: Each icon floats independently using Motion (framer-motion fork).
-// Install: npm install motion
-// ─────────────────────────────────────────────────────────────────────────────
 
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import Image from "next/image";
+import { SketchBorder } from "@/components/SketchBorder";
+import { HobbyKeycap } from "@/components/home/HobbyKeycap";
 
-// ─── Floating icon positions ──────────────────────────────────────────────────
-// Each entry: { src, alt, top, left } — tweak these % values to match your
-// Figma layout exactly. These roughly match the scattered arrangement shown.
-// ─────────────────────────────────────────────────────────────────────────────
-const FLOATING_ICONS = [
-  { id: "gardening", src: "/images/gardening.png",       alt: "Gardening",    top: "12%", left: "8%",  size: 110, delay: 0    },
-  { id: "cooking",   src: "/images/cooking.png",         alt: "Cooking",      top: "18%", left: "28%", size: 90,  delay: 0.4  },
-  { id: "novel",     src: "/images/writing.png",         alt: "Writing",      top: "8%",  left: "52%", size: 100, delay: 0.8  },
-  { id: "guitar",    src: "/images/guitar.png",          alt: "Music",        top: "28%", left: "68%", size: 120, delay: 0.2  },
-  { id: "camera",    src: "/images/photography.png",     alt: "Photography",  top: "52%", left: "14%", size: 95,  delay: 0.6  },
-  { id: "palette",   src: "/images/painting.png",        alt: "Painting",     top: "55%", left: "58%", size: 100, delay: 1.0  },
-  { id: "singer",    src: "/images/singing.png",         alt: "Singing",      top: "68%", left: "34%", size: 110, delay: 0.3  },
-  { id: "karate",    src: "/images/karate.png",          alt: "Karate",       top: "62%", left: "76%", size: 100, delay: 0.7  },
-  // ← Add more hobby icons here; position them with top/left %
+// Horizontal band — staggered lift keeps a gentle wave while each keycap floats in place.
+const HOBBIES = [
+  { id: "gardening",  src: "/images/gardening.png",   label: "Gardening",   lift: 0,  delay: 0.0, variant: "cream" as const },
+  { id: "camera",     src: "/images/photography.png", label: "Photography", lift: 28, delay: 0.5, variant: "paper" as const },
+  { id: "guitar",     src: "/images/music.png",       label: "Music",       lift: 0,  delay: 0.2, variant: "cream" as const },
+  { id: "cooking",    src: "/images/cooking.png",     label: "Cooking",     lift: 32, delay: 0.7, variant: "paper" as const },
+  { id: "palette",    src: "/images/painting.png",    label: "Painting",    lift: 0,  delay: 0.3, variant: "cream" as const },
+  { id: "novel",      src: "/images/reading.png",     label: "Reading",     lift: 28, delay: 0.6, variant: "paper" as const },
+  { id: "singer",     src: "/images/singing.png",     label: "Singing",     lift: 0,  delay: 0.4, variant: "cream" as const },
+  { id: "karate",     src: "/images/karate.png",      label: "Karate",      lift: 32, delay: 0.8, variant: "paper" as const },
 ];
-
-// Float animation — gentle up-and-down per icon
-function floatVariants(delay: number): Record<string, any> {
-  return {
-    initial: { y: '0%', rotate: 0 },
-    animate: {
-      y: ['0%', '-6%', '0%'],
-      rotate: [-1.5, 1.5, -1.5],
-      transition: {
-        duration: 3.5 + delay * 0.4,
-        repeat: Infinity,
-        // use a bezier easing array instead of a string to satisfy types
-        ease: [0.42, 0, 0.58, 1],
-        delay,
-      },
-    },
-  }
-}
 
 export default function HomePage() {
   const router = useRouter();
 
+  function startOnboarding() {
+    router.push("/onboarding");
+  }
+
   return (
-    <main className="relative w-full min-h-screen overflow-hidden bg-[#FAF8F4] select-none">
+    <main className="relative w-full min-h-screen overflow-hidden bg-[#F4F1EA]">
+      <SketchBorder />
 
-      {/* ── Wordmark ─────────────────────────────────────────────────────────── */}
-      <h1 className="font-sketch absolute top-6 right-8 text-3xl font-bold tracking-widest text-[#2D2D2D] z-10">
-        REHOBBIE
-      </h1>
-
-      {/* ── Floating hobby illustrations ──────────────────────────────────────── */}
-      {FLOATING_ICONS.map((icon) => (
+      <div className="relative z-10 min-h-screen flex flex-col items-center px-6 py-10">
         <motion.div
-          key={icon.id}
-          className="absolute"
-          style={{ top: icon.top, left: icon.left }}
-          variants={floatVariants(icon.delay)}
-          animate="animate"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          {/*
-            ─────────────────────────────────────────────────────────────────────
-            PLACEHOLDER: Replace <Image> with your own illustrated component
-            if you have a custom wrapper. Make sure the image file exists in
-            /public/images/ with the filename matching `icon.src`.
-            ─────────────────────────────────────────────────────────────────────
-          */}
           <Image
-            src={icon.src}
-            alt={icon.alt}
-            width={icon.size}
-            height={icon.size}
-            className="drop-shadow-sm"
-            draggable={false}
+            src="/images/rehobbie_logo.png"
+            alt="Rehobbie"
+            width={468}
+            height={212}
+            priority
+            className="w-[clamp(170px,18vw,250px)] h-auto"
           />
         </motion.div>
-      ))}
 
-      {/* ── Get started button ───────────────────────────────────────────────── */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10">
-        <motion.button
-          onClick={() => router.push("/onboarding")}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.97 }}
-          className="
-            bg-[#A8D8B0] text-[#2D2D2D] font-sketch text-2xl font-semibold
-            px-10 py-4 rounded-full shadow-md
-            border-2 border-[#7EBC89]
-            hover:bg-[#93CFA0] transition-colors
-          "
-        >
-          Get started
-        </motion.button>
+        <div className="flex-1 flex flex-col items-center justify-center gap-10 w-full">
+          <p className="font-sketch text-2xl md:text-3xl text-rehobbie-ink/80 text-center leading-snug max-w-sm">
+            rediscover the hobbies you used to love
+          </p>
+
+          <div className="flex flex-wrap items-end justify-center gap-x-5 md:gap-x-7 gap-y-10 max-w-5xl w-full px-2">
+            {HOBBIES.map((hobby) => (
+              <HobbyKeycap
+                key={hobby.id}
+                src={hobby.src}
+                alt={hobby.label}
+                label={hobby.label}
+                lift={hobby.lift}
+                delay={hobby.delay}
+                variant={hobby.variant}
+                onClick={startOnboarding}
+              />
+            ))}
+          </div>
+
+          <motion.button
+            type="button"
+            onClick={startOnboarding}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut", delay: 0.3 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.97 }}
+            className="appearance-none border-0 bg-transparent p-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-rehobbie-green focus-visible:ring-offset-2 rounded-sm"
+            aria-label="Get started"
+          >
+            <Image
+              src="/images/get_started_button.png"
+              alt=""
+              width={603}
+              height={217}
+              className="object-contain w-[clamp(200px,22vw,290px)] h-auto drop-shadow-md"
+              draggable={false}
+            />
+          </motion.button>
+        </div>
       </div>
-
-      {/* ── Subtle tagline ────────────────────────────────────────────────────── */}
-      <p className="absolute bottom-10 left-1/2 -translate-x-1/2 text-sm text-[#888] font-body tracking-wide whitespace-nowrap">
-        pick up where you left off
-      </p>
     </main>
   );
 }
